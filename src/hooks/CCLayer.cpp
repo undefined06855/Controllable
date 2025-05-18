@@ -17,5 +17,7 @@ void HookedCCLayer::onExit() {
         }
     }
 
+    // TODO: preserve last layer's button
+
     CCLayer::onExit();
 }
