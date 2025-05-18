@@ -21,5 +21,6 @@ cocos2d::CCRect createTryFocusRect(cocos2d::CCRect initialButtonRect, TryFocusRe
 cocos2d::CCMenuItem* findMostImportantButton(std::vector<cocos2d::CCMenuItem*>& buttons);
 GamepadButton directionToButton(Direction direction);
 bool isPlayingLevel();
+bool isNodeOffscreen(cocos2d::CCNode* node);
 
 }

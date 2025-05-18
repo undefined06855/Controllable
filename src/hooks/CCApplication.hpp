@@ -2,22 +2,19 @@
 #include <Geode/modify/CCApplication.hpp>
 #include "../utils.hpp"
 
-void HookedCCApplication_updateControllerKeys(cocos2d::CCApplication* self, CXBOXController* controller, int player);
-void HookedCCApplication_updateDrawNode(cocos2d::CCApplication* self);
+class $modify(HookedCCApplication, cocos2d::CCApplication) {
+    void updateControllerKeys(CXBOXController* controller, int player);
 
-// direction
-void HookedCCApplication_focusInDirection(cocos2d::CCApplication* self, Direction direction);
-cocos2d::CCMenuItem* HookedCCApplication_attemptFindButton(cocos2d::CCApplication* self, Direction direction, cocos2d::CCRect rect);
+    void updateDrawNode();
 
-// face buttons
-void HookedCCApplication_pressButton(cocos2d::CCApplication* self, GamepadButton button);
-void HookedCCApplication_depressButton(cocos2d::CCApplication* self, GamepadButton button);
+    // direction
+    void focusInDirection(Direction direction);
+    cocos2d::CCMenuItem* attemptFindButton(Direction direction, cocos2d::CCRect rect);
 
-$execute {
-    // TODO: figure out why $modify doesnt work
-    (void)geode::Mod::get()->hook(
-        (void*)(geode::base::getCocos() + 0x732f0),
-        &HookedCCApplication_updateControllerKeys,
-        "cocos2d::CCApplication::updateControllerKeys"
-    );
-}
+    // face buttons
+    void pressButton(GamepadButton button);
+    void depressButton(GamepadButton button);
+
+    // scroll (right joystick)
+    void scrollScreen(float amount);
+};

@@ -3,15 +3,21 @@
 #include "../globals.hpp"
 #include "../utils.hpp"
 
-void HookedCCApplication_updateControllerKeys(cocos2d::CCApplication* self, CXBOXController* controller, int player) {
+void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int player) {
     if (!controller->m_controllerConnected) return;
     if (player != 1) return;
 
     g_controller.update();
 
+    // should be covered by the cclayer hooks but just in case
     if (cocos2d::CCDirector::get()->getIsTransitioning()) {
         g_button = nullptr;
         return;
+    }
+
+    // force reset if the button goes offscreen
+    if (cl::utils::isNodeOffscreen(g_button)) {
+        g_button = nullptr;
     }
 
     // if playing level, skip no button checks we dont need the button since
@@ -28,31 +34,33 @@ void HookedCCApplication_updateControllerKeys(cocos2d::CCApplication* self, CXBO
     auto direction = g_controller.directionJustPressed();
     auto buttonPressed = g_controller.gamepadButtonJustPressed();
     auto buttonReleased = g_controller.gamepadButtonJustReleased();
+    auto scroll = g_controller.getRightJoyY();
 
     if (direction != Direction::None) {
-        HookedCCApplication_focusInDirection(self, direction);
+        focusInDirection(direction);
     }
 
     if (buttonPressed != GamepadButton::None) {
-        HookedCCApplication_pressButton(self, buttonPressed);
+        pressButton(buttonPressed);
     }
 
     if (buttonReleased != GamepadButton::None) {
-        HookedCCApplication_depressButton(self, buttonReleased);
+        depressButton(buttonReleased);
     }
 
-    // TODO: add scrolling the current scrolllayer by perhaps simulating touch
-    // depending on the right joystick state?
+    if (scroll != 0.f) {
+        scrollScreen(scroll);
+    }
 
-    HookedCCApplication_updateDrawNode(self);
+    updateDrawNode();
 }
 
-void HookedCCApplication_focusInDirection(cocos2d::CCApplication* self, Direction direction) {
+void HookedCCApplication::focusInDirection(Direction direction) {
     if (!g_button) return;
     if (cl::utils::isPlayingLevel()) {
         geode::log::debug("direction fallback");
-        HookedCCApplication_pressButton(self, cl::utils::directionToButton(direction));
-        HookedCCApplication_depressButton(self, cl::utils::directionToButton(direction));
+        pressButton(cl::utils::directionToButton(direction));
+        depressButton(cl::utils::directionToButton(direction));
         return;
     }
 
@@ -68,7 +76,7 @@ void HookedCCApplication_focusInDirection(cocos2d::CCApplication* self, Directio
 
     for (auto type : rectTypes) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
-        if (auto button = HookedCCApplication_attemptFindButton(self, direction, tryFocusRect)) {
+        if (auto button = attemptFindButton(direction, tryFocusRect)) {
             g_button->unselected();
             g_button = button;
             if (g_controller.gamepadButtonPressed() == GamepadButton::A) g_button->selected();
@@ -79,7 +87,7 @@ void HookedCCApplication_focusInDirection(cocos2d::CCApplication* self, Directio
     // else just fucking give up
 }
 
-cocos2d::CCMenuItem* HookedCCApplication_attemptFindButton(cocos2d::CCApplication* self, Direction direction, cocos2d::CCRect rect) {
+cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect) {
     cocos2d::CCMenuItem* closestButton = nullptr;
     geode::log::debug("Searching {} buttons", g_cachedButtons.size());
 
@@ -172,7 +180,7 @@ cocos2d::CCMenuItem* HookedCCApplication_attemptFindButton(cocos2d::CCApplicatio
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocosBtn, press, false); \
         break;
 
-void HookedCCApplication_pressButton(cocos2d::CCApplication* self, GamepadButton button) {
+void HookedCCApplication::pressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
     if (cl::utils::isPlayingLevel()) {
@@ -208,7 +216,7 @@ void HookedCCApplication_pressButton(cocos2d::CCApplication* self, GamepadButton
     }
 }
 
-void HookedCCApplication_depressButton(cocos2d::CCApplication* self, GamepadButton button) {
+void HookedCCApplication::depressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
     if (cl::utils::isPlayingLevel()) {
@@ -246,7 +254,14 @@ void HookedCCApplication_depressButton(cocos2d::CCApplication* self, GamepadButt
 
 #undef SEND_CONTROLLER_BTN
 
-void HookedCCApplication_updateDrawNode(cocos2d::CCApplication* self) {
+void HookedCCApplication::scrollScreen(float amount) {
+    // TODO: this is tied to framerate! put in queue and run in ccscheduler update, perhaps?
+    auto mouseDispatcher = cocos2d::CCDirector::get()->getMouseDispatcher();
+    mouseDispatcher->dispatchScrollMSG(-amount, 0.f);
+}
+
+void HookedCCApplication::updateDrawNode() {
+    // lol nobody uses notification node, might as well steal it
     if (!g_overlay) {
         g_overlay = cocos2d::CCDrawNode::create();
         g_overlay->retain();

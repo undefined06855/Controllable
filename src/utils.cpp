@@ -6,7 +6,7 @@ std::vector<cocos2d::CCMenuItem*> cl::utils::gatherAllButtons(cocos2d::CCNode* n
 
     // ccscene is special - only choose nodes from the thing with the highest z
     // order that also isnt persisted
-    if (node == cocos2d::CCScene::get()) {
+    if (node == cocos2d::CCScene::get() || geode::cast::typeinfo_cast<RewardsPage*>(node)) {
         cocos2d::CCNode* highestZOrderChild = nullptr;
         for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
             bool persisted = false;
@@ -32,23 +32,20 @@ std::vector<cocos2d::CCMenuItem*> cl::utils::gatherAllButtons(cocos2d::CCNode* n
         return cl::utils::gatherAllButtons(highestZOrderChild);
     }
 
-    // else every other normal node...
+    // else for every other normal node...
 
     std::vector<cocos2d::CCMenuItem*> ret = {};
 
-    if (node->getUserObject("is-button"_spr)) {
+    // remember to check this node!
+    if (node->getUserObject("is-button"_spr) && static_cast<cocos2d::CCMenuItem*>(node)->isEnabled() && !cl::utils::isNodeOffscreen(node)) {
         ret.push_back(static_cast<cocos2d::CCMenuItem*>(node));
     }
 
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         for (auto button : cl::utils::gatherAllButtons(child)) {
-            // is this offscreen?
-            auto winSize = cocos2d::CCDirector::get()->getWinSize();
-            auto buttonRect = cl::utils::getNodeBoundingBox(button);
-            if (buttonRect.getMinX() > winSize.width) continue;
-            if (buttonRect.getMaxX() < 0) continue;
-            if (buttonRect.getMinY() > winSize.height) continue;
-            if (buttonRect.getMaxY() < 0) continue;
+            // simple checks
+            if (!button->isEnabled()) continue;
+            if (cl::utils::isNodeOffscreen(button)) continue;
 
             ret.push_back(button);
         }
@@ -72,20 +69,20 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
     cocos2d::CCRect tryFocusRect = initialButtonRect;
 
     // adjust initial pos to ensure the rect is to one side of the button
-    // +1 to ensure buttons that are on the same secondary axis or overlapping
+    // +8 to ensure buttons that are on the same secondary axis or overlapping
     // dont get selected
     switch (direction) {
         case Direction::Up:
-            tryFocusRect.origin.y += initialButtonRect.size.height + 5.f;
+            tryFocusRect.origin.y += initialButtonRect.size.height + 8.f;
             break;
         case Direction::Down:
-            tryFocusRect.origin.y -= initialButtonRect.size.height + 5.f;
+            tryFocusRect.origin.y -= initialButtonRect.size.height + 8.f;
             break;
         case Direction::Left:
-            tryFocusRect.origin.x -= initialButtonRect.size.width + 5.f;
+            tryFocusRect.origin.x -= initialButtonRect.size.width + 8.f;
             break;
         case Direction::Right:
-            tryFocusRect.origin.x += initialButtonRect.size.width + 5.f;
+            tryFocusRect.origin.x += initialButtonRect.size.width + 8.f;
             break;
         case Direction::None:
             break;
@@ -149,15 +146,104 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
     }
 
+    // minimum size enforcement
+    if (tryFocusRect.size.height < 24.f) {
+        float diff = 24.f - tryFocusRect.size.height;
+        tryFocusRect.origin.y -= diff / 2.f;
+        tryFocusRect.size.height += diff;
+    }
+
+    if (tryFocusRect.size.width < 24.f) {
+        float diff = 24.f - tryFocusRect.size.width;
+        tryFocusRect.origin.x -= diff / 2.f;
+        tryFocusRect.size.width += diff;
+    }
+
     return tryFocusRect;
 }
 
 cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCMenuItem*>& buttons) {
-    // TODO: find most important button depending on
-    // - texture
-    // - buttonsprite text "ok" etc
-    // - position?
-    return buttons[0];
+    int mostImportantImportantness = -1;
+    cocos2d::CCMenuItem* mostImportantButton = nullptr;
+
+    static const std::unordered_map<std::string, int> spriteImportantness = {
+        { "GJ_arrow_03_001.png", 1 }, // back button, really just a fallback
+        { "GJ_closeBtn_001.png", 1 }, // same
+
+        { "GJ_infoIcon_001.png", 2 }, // info btn
+
+        { "GJ_chatBtn_001.png", 5 }, // commenting
+        { "GJ_playBtn2_001.png", 5 }, // play button
+        { "GJ_createBtn_001.png", 5 }, // create button in creatorlayer
+        { "GJ_playBtn_001.png", 10 } // menulayer
+    };
+
+    static const std::unordered_map<std::string, int> buttonSpriteImportantness = {
+        { "ok", 5 },
+        { "yes", 5 },
+        { "sure", 5 },
+        { "confirm", 5 },
+        { "submit", 5 },
+        { "view", 5 },
+
+        { "no", -5 },
+        { "cancel", -5 },
+        { "exit", -5 },
+    };
+
+    for (auto button : buttons) {
+        int importantness = 0;
+        
+        // check if this contains a sprite
+        auto sprite = button->getChildByType<cocos2d::CCSprite*>(0);
+        if (sprite) {
+            std::string frameName = "";
+            // taken from devtools
+            if (auto texture = sprite->getTexture()) {
+                auto cachedFrames = cocos2d::CCSpriteFrameCache::sharedSpriteFrameCache()->m_pSpriteFrames;
+                auto rect = sprite->getTextureRect();
+                for (auto [key, frame] : geode::cocos::CCDictionaryExt<std::string, cocos2d::CCSpriteFrame*>(cachedFrames)) {
+                    if (frame->getTexture() == texture && frame->getRect() == rect) {
+                        frameName = key;
+                    }
+                }
+            }
+
+            if (spriteImportantness.contains(frameName)) {
+                importantness += spriteImportantness.at(frameName);
+            }
+        }
+
+        // check if this contains a buttonsprite
+        auto text = button->getChildByType<ButtonSprite*>(0);
+        if (text) {
+            // lowercase the caption
+            auto caption = text->m_caption;
+            std::transform(caption.begin(), caption.end(), caption.begin(), [](auto c){ return std::tolower(c); });
+
+            if (buttonSpriteImportantness.contains(caption)) {
+                importantness += buttonSpriteImportantness.at(caption);
+            }
+        }
+
+        // and see if its more important
+        if (importantness > mostImportantImportantness) {
+            mostImportantImportantness = importantness;
+            mostImportantButton = button;
+        }
+
+        // tie, compare Y positions - we want the highest (usually)
+        if (importantness == mostImportantImportantness) {
+            auto mostImportantBounding = cl::utils::getNodeBoundingBox(mostImportantButton);
+            auto buttonBounding = cl::utils::getNodeBoundingBox(button);
+            if (mostImportantBounding.getMidY() < buttonBounding.getMidY()) {
+                mostImportantImportantness = importantness;
+                mostImportantButton = button;
+            }
+        }
+    }
+
+    return mostImportantButton;
 }
 
 GamepadButton cl::utils::directionToButton(Direction direction) {
@@ -180,4 +266,17 @@ bool cl::utils::isPlayingLevel() {
     if (LevelEditorLayer::get()) return true; // leveleditorlayer
     if (cocos2d::CCScene::get()->getChildrenCount() == geode::SceneManager::get()->getPersistedNodes().size() + 1) return true; // only playlayer
     return false; // playlayer and something else
+}
+
+bool cl::utils::isNodeOffscreen(cocos2d::CCNode *node) {
+    if (!node) return true;
+
+    auto winSize = cocos2d::CCDirector::get()->getWinSize();
+    auto bb = cl::utils::getNodeBoundingBox(node);
+    if (bb.getMinX() > winSize.width) return true;
+    if (bb.getMaxX() < 0) return true;
+    if (bb.getMinY() > winSize.height) return true;
+    if (bb.getMaxY() < 0) return true;
+
+    return false;
 }

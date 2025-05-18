@@ -75,3 +75,8 @@ GamepadButton Controller::gamepadButtonPressed() {
     return GamepadButton::None;
 }
 
+float Controller::getRightJoyY() {
+    if (m_state.Gamepad.sThumbRY < 3000 && m_state.Gamepad.sThumbRY > -3000) return 0.f; // deadzone
+    
+    return m_state.Gamepad.sThumbRY / 32767.f;
+}
