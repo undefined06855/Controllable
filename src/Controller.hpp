@@ -1,11 +1,20 @@
 #pragma once
 #include "utils.hpp"
 
+struct ControllerState {
+    bool buttonA, buttonB, buttonX, buttonY,
+         buttonStart, buttonSelect,
+         buttonL, buttonR, buttonZL, buttonZR,
+         buttonUp, buttonDown, buttonLeft, buttonRight;
+    float joyLeftX, joyLeftY,
+          joyRightX, joyRightY;
+};
+
 class Controller {
 public:
     Controller();
 
-    XINPUT_STATE m_state;
+    ControllerState m_state;
     Direction m_lastDirection;
     GamepadButton m_lastGamepadButton;
 

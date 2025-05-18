@@ -4,7 +4,7 @@
 Controller g_controller;
 
 Controller::Controller()
-    : m_state(0)
+    : m_state({})
     , m_lastDirection(Direction::None)
     , m_lastGamepadButton(GamepadButton::None) {}
 
@@ -13,7 +13,29 @@ void Controller::update() {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
 
-    _XInputGetState(0, &m_state);
+    XINPUT_STATE state;
+    _XInputGetState(0, &state);
+
+    m_state.buttonA = state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
+    m_state.buttonB = state.Gamepad.wButtons & XINPUT_GAMEPAD_B;
+    m_state.buttonX = state.Gamepad.wButtons & XINPUT_GAMEPAD_X;
+    m_state.buttonY = state.Gamepad.wButtons & XINPUT_GAMEPAD_Y;
+
+    m_state.buttonStart = state.Gamepad.wButtons & XINPUT_GAMEPAD_START;
+    m_state.buttonSelect = state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
+
+    m_state.buttonL = state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+    m_state.buttonR = state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+
+    static byte deadzone = 26;
+
+    m_state.buttonZL = state.Gamepad.bLeftTrigger > deadzone;
+    m_state.buttonZR = state.Gamepad.bRightTrigger > deadzone;
+
+    m_state.joyLeftX = state.Gamepad.sThumbLX / 32767.f;
+    m_state.joyLeftY = state.Gamepad.sThumbLY / 32767.f;
+    m_state.joyRightX = state.Gamepad.sThumbRX / 32767.f;
+    m_state.joyRightY = state.Gamepad.sThumbRY / 32767.f;
 }
 
 Direction Controller::directionJustPressed() {
@@ -33,50 +55,43 @@ GamepadButton Controller::gamepadButtonJustReleased() {
 
 
 Direction Controller::directionPressed() {
-    auto gamepad = m_state.Gamepad;
+    if (m_state.buttonUp) return Direction::Up;
+    if (m_state.buttonDown) return Direction::Down;
+    if (m_state.buttonLeft) return Direction::Left;
+    if (m_state.buttonRight) return Direction::Right;
 
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) return Direction::Up;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) return Direction::Down;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) return Direction::Left;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) return Direction::Right;
+    static float deadzone = .1f;
 
-    static short deadzone = 6500;
-
-    if (gamepad.sThumbLY > deadzone) return Direction::Up;
-    if (gamepad.sThumbLY < -deadzone) return Direction::Down;
-    if (gamepad.sThumbLX < -deadzone) return Direction::Left;
-    if (gamepad.sThumbLX > deadzone) return Direction::Right;
+    if (m_state.joyLeftY > deadzone) return Direction::Up;
+    if (m_state.joyLeftY < -deadzone) return Direction::Down;
+    if (m_state.joyLeftX < -deadzone) return Direction::Left;
+    if (m_state.joyLeftX > deadzone) return Direction::Right;
 
     return Direction::None;
 }
 
 GamepadButton Controller::gamepadButtonPressed() {
-    auto gamepad = m_state.Gamepad;
+    if (m_state.buttonA) return GamepadButton::A;
+    if (m_state.buttonB) return GamepadButton::B;
+    if (m_state.buttonX) return GamepadButton::X;
+    if (m_state.buttonY) return GamepadButton::Y;
+    if (m_state.buttonStart) return GamepadButton::Start;
+    if (m_state.buttonSelect) return GamepadButton::Select;
+    if (m_state.buttonL) return GamepadButton::L;
+    if (m_state.buttonR) return GamepadButton::R;
+    if (m_state.buttonZL) return GamepadButton::L;
+    if (m_state.buttonZR) return GamepadButton::R;
 
-    if (gamepad.wButtons & XINPUT_GAMEPAD_A) return GamepadButton::A;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_B) return GamepadButton::B;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_X) return GamepadButton::X;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_Y) return GamepadButton::Y;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_START) return GamepadButton::Start;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_BACK) return GamepadButton::Select;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) return GamepadButton::L;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) return GamepadButton::R;
-
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) return GamepadButton::Up;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) return GamepadButton::Down;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) return GamepadButton::Left;
-    if (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) return GamepadButton::Right;
-
-
-    static byte deadzone = 26;
-    if (gamepad.bLeftTrigger > deadzone) return GamepadButton::ZL;
-    if (gamepad.bRightTrigger > deadzone) return GamepadButton::ZR;
+    if (m_state.buttonUp) return GamepadButton::Up;
+    if (m_state.buttonDown) return GamepadButton::Down;
+    if (m_state.buttonLeft) return GamepadButton::Left;
+    if (m_state.buttonRight) return GamepadButton::Right;
 
     return GamepadButton::None;
 }
 
 float Controller::getRightJoyY() {
-    if (m_state.Gamepad.sThumbRY < 3000 && m_state.Gamepad.sThumbRY > -3000) return 0.f; // deadzone
+    if (m_state.joyRightY < .1f && m_state.joyRightY > -.1f) return 0.f; // deadzone
     
-    return m_state.Gamepad.sThumbRY / 32767.f;
+    return m_state.joyRightY;
 }
