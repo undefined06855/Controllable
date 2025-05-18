@@ -1,0 +1,20 @@
+{
+	"geode": "4.4.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+
+	"version": "v1.0.0",
+	"id": "undefined0.controllable",
+	"name": "Controllable",
+	"developer": "undefined0",
+	"description": "A mod that improves GD's controller support!",
+	"tags": [ "enhancement", "interface", "universal" ],
+
+	"links": {
+		"source": "https://github.com/undefined06855/Controllable"
+	}
+}
