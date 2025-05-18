@@ -1,4 +1,4 @@
-#include "Controller.hpp"
+#include "../../Controller.hpp"
 #include "xinput.hpp"
 
 Controller g_controller;
