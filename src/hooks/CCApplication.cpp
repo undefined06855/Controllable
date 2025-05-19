@@ -76,6 +76,8 @@ void HookedCCApplication::focusInDirection(Direction direction) {
     }
 
     if (g_isAdjustingSlider) return;
+
+    // TODO: also find text inputs? idk where to put this todo
     
     // find buttons with shrunken, enlarged, further enlarged and extreme rect types
     static const std::array<TryFocusRectType, 4> rectTypes = {
