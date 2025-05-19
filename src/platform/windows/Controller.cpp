@@ -27,10 +27,14 @@ void Controller::update() {
     m_state.buttonL = state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
     m_state.buttonR = state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
 
-    static byte deadzone = 26;
+    m_state.buttonUp = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+    m_state.buttonDown = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+    m_state.buttonLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+    m_state.buttonRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
 
-    m_state.buttonZL = state.Gamepad.bLeftTrigger > deadzone;
-    m_state.buttonZR = state.Gamepad.bRightTrigger > deadzone;
+    static byte triggerDeadzone = 26;
+    m_state.buttonZL = state.Gamepad.bLeftTrigger > triggerDeadzone;
+    m_state.buttonZR = state.Gamepad.bRightTrigger > triggerDeadzone;
 
     m_state.joyLeftX = state.Gamepad.sThumbLX / 32767.f;
     m_state.joyLeftY = state.Gamepad.sThumbLY / 32767.f;
@@ -61,13 +65,13 @@ Direction Controller::directionPressed() {
     if (m_state.buttonLeft) return Direction::Left;
     if (m_state.buttonRight) return Direction::Right;
 
-    static float deadzone = .1f;
+    static float stickDeadzone = .1f;
 
     // joystick
-    if (m_state.joyLeftY > deadzone) return Direction::Up;
-    if (m_state.joyLeftY < -deadzone) return Direction::Down;
-    if (m_state.joyLeftX < -deadzone) return Direction::Left;
-    if (m_state.joyLeftX > deadzone) return Direction::Right;
+    if (m_state.joyLeftY > stickDeadzone) return Direction::Up;
+    if (m_state.joyLeftY < -stickDeadzone) return Direction::Down;
+    if (m_state.joyLeftX < -stickDeadzone) return Direction::Left;
+    if (m_state.joyLeftX > stickDeadzone) return Direction::Right;
 
     return Direction::None;
 }
@@ -93,7 +97,9 @@ GamepadButton Controller::gamepadButtonPressed() {
 }
 
 float Controller::getRightJoyY() {
-    if (m_state.joyRightY < .1f && m_state.joyRightY > -.1f) return 0.f; // deadzone
+    static float stickDeadzone = .1f;
+
+    if (m_state.joyRightY < stickDeadzone && m_state.joyRightY > -stickDeadzone) return 0.f; // deadzone
     
     return m_state.joyRightY;
 }

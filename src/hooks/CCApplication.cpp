@@ -48,9 +48,7 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
         depressButton(buttonReleased);
     }
 
-    if (scroll != 0.f) {
-        scrollScreen(scroll);
-    }
+    g_scrollNextFrame = -scroll;
 
     updateDrawNode();
 }
@@ -63,20 +61,19 @@ void HookedCCApplication::focusInDirection(Direction direction) {
         depressButton(cl::utils::directionToButton(direction));
         return;
     }
-
-    // update cached buttons, used in attemptFindButton
-    g_cachedButtons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
-
+    
     // find buttons with shrunken, enlarged and extreme rect types
     static const std::array<TryFocusRectType, 3> rectTypes = {
         TryFocusRectType::Shrunken, TryFocusRectType::Enlarged, TryFocusRectType::Extreme
     };
-
+    
     auto buttonRect = cl::utils::getNodeBoundingBox(g_button);
-
+    std::vector<cocos2d::CCMenuItem*> buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
+    
     for (auto type : rectTypes) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
-        if (auto button = attemptFindButton(direction, tryFocusRect)) {
+        if (auto button = attemptFindButton(direction, tryFocusRect, buttons)) {
+            geode::log::debug("Found with {}", (int)type);
             g_button->unselected();
             g_button = button;
             if (g_controller.gamepadButtonPressed() == GamepadButton::A) g_button->selected();
@@ -87,13 +84,13 @@ void HookedCCApplication::focusInDirection(Direction direction) {
     // else just fucking give up
 }
 
-cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect) {
+cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCMenuItem*> buttons) {
     cocos2d::CCMenuItem* closestButton = nullptr;
-    geode::log::debug("Searching {} buttons", g_cachedButtons.size());
+    geode::log::debug("Searching {} buttons", buttons.size());
 
     auto curButtonRect = cl::utils::getNodeBoundingBox(g_button);
     cocos2d::CCRect closestButtonRect = { 0.f, 0.f, 0.f, 0.f };
-    for (auto button : g_cachedButtons) {
+    for (auto button : buttons) {
         if (button == g_button) continue;
 
         auto buttonRect = cl::utils::getNodeBoundingBox(button);
@@ -107,6 +104,8 @@ cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction,
         }
 
         // compare different points depending on direction
+        // for non-none directions, pretty sure i dont actually need to check
+        // the difference between and i only need to check the positions
         switch (direction) {
             // use distance between centre of buttons - only used when extreme
             // tryFocusRect is used
@@ -131,6 +130,16 @@ cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction,
                     closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
                     continue;
                 }
+                if (diffY == closestDiffY) {
+                    // check middles
+                    float diffX = std::abs(buttonRect.getMidX() - curButtonRect.getMidX());
+                    float closestDiffX = std::abs(closestButtonRect.getMidX() - curButtonRect.getMidX());
+                    if (diffX < closestDiffX) {
+                        closestButton = button;
+                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        continue;
+                    }
+                }
                 break;
             }
 
@@ -143,29 +152,59 @@ cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction,
                     closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
                     continue;
                 }
+                if (diffY == closestDiffY) {
+                    // check middles
+                    float diffX = std::abs(buttonRect.getMidX() - curButtonRect.getMidX());
+                    float closestDiffX = std::abs(closestButtonRect.getMidX() - curButtonRect.getMidX());
+                    if (diffX < closestDiffX) {
+                        closestButton = button;
+                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        continue;
+                    }
+                }
                 break;
             }
 
             // use rightmost points
             case Direction::Left: {
-                float diffY = curButtonRect.getMaxX() - buttonRect.getMaxX();
-                float closestDiffY = curButtonRect.getMaxX() - closestButtonRect.getMaxX();
-                if (diffY < closestDiffY) {
+                float diffX = curButtonRect.getMaxX() - buttonRect.getMaxX();
+                float closestDiffX = curButtonRect.getMaxX() - closestButtonRect.getMaxX();
+                if (diffX < closestDiffX) {
                     closestButton = button;
                     closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
                     continue;
+                }
+                if (diffX == closestDiffX) {
+                    // check middles
+                    float diffY = std::abs(buttonRect.getMidY() - curButtonRect.getMidY());
+                    float closestDiffY = std::abs(closestButtonRect.getMidY() - curButtonRect.getMidY());
+                    if (diffY < closestDiffY) {
+                        closestButton = button;
+                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        continue;
+                    }
                 }
                 break;
             }
 
             // use leftmost points
             case Direction::Right: {
-                float diffY = buttonRect.getMinX() - curButtonRect.getMinX();
-                float closestDiffY = closestButtonRect.getMinX() - curButtonRect.getMinX();
-                if (diffY < closestDiffY) {
+                float diffX = buttonRect.getMinX() - curButtonRect.getMinX();
+                float closestDiffX = closestButtonRect.getMinX() - curButtonRect.getMinX();
+                if (diffX < closestDiffX) {
                     closestButton = button;
                     closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
                     continue;
+                }
+                if (diffX == closestDiffX) {
+                    // check middles
+                    float diffY = std::abs(buttonRect.getMidY() - curButtonRect.getMidY());
+                    float closestDiffY = std::abs(closestButtonRect.getMidY() - curButtonRect.getMidY());
+                    if (diffY < closestDiffY) {
+                        closestButton = button;
+                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        continue;
+                    }
                 }
                 break;
             }
@@ -253,12 +292,6 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 }
 
 #undef SEND_CONTROLLER_BTN
-
-void HookedCCApplication::scrollScreen(float amount) {
-    // TODO: this is tied to framerate! put in queue and run in ccscheduler update, perhaps?
-    auto mouseDispatcher = cocos2d::CCDirector::get()->getMouseDispatcher();
-    mouseDispatcher->dispatchScrollMSG(-amount, 0.f);
-}
 
 void HookedCCApplication::updateDrawNode() {
     // lol nobody uses notification node, might as well steal it

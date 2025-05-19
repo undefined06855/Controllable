@@ -9,12 +9,9 @@ class $modify(HookedCCApplication, cocos2d::CCApplication) {
 
     // direction
     void focusInDirection(Direction direction);
-    cocos2d::CCMenuItem* attemptFindButton(Direction direction, cocos2d::CCRect rect);
+    cocos2d::CCMenuItem* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCMenuItem*> buttons);
 
     // face buttons
     void pressButton(GamepadButton button);
     void depressButton(GamepadButton button);
-
-    // scroll (right joystick)
-    void scrollScreen(float amount);
 };

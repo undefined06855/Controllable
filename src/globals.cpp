@@ -1,9 +1,12 @@
 #include "globals.hpp"
 
 cocos2d::CCDrawNode* g_overlay = nullptr;
-std::vector<cocos2d::CCMenuItem*> g_cachedButtons = {};
 
 cocos2d::CCMenuItem* g_button = nullptr;
+
+// set in scrollScreen, fetched in ccscheduler update
+float g_scrollNextFrame = 0.f;
+float g_scrollTime = 0.f;
 
 // TODO: make g_isUsingController update
 bool g_isUsingController = true;

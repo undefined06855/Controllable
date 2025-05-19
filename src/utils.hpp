@@ -22,5 +22,8 @@ cocos2d::CCMenuItem* findMostImportantButton(std::vector<cocos2d::CCMenuItem*>& 
 GamepadButton directionToButton(Direction direction);
 bool isPlayingLevel();
 bool isNodeOffscreen(cocos2d::CCNode* node);
+bool isNodeClipped(cocos2d::CCNode* node);
+template <class T>
+T findParentOfType(cocos2d::CCNode* node);
 
 }

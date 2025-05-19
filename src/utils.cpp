@@ -88,11 +88,16 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
     }
 
+    // figure out the largest distance the rect should be
     float distance;
     switch (type) {
         case TryFocusRectType::Shrunken:
         case TryFocusRectType::Enlarged:
-            distance = 200.f;
+            if (direction == Direction::Up || direction == Direction::Down) {
+                distance = 200.f;
+            } else {
+                distance = 100.f;
+            }
             break;
         case TryFocusRectType::Extreme:
             distance = 1000.f;
@@ -164,13 +169,13 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
 
 cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCMenuItem*>& buttons) {
     int mostImportantImportantness = -1;
-    cocos2d::CCMenuItem* mostImportantButton = nullptr;
+    cocos2d::CCMenuItem* mostImportantButton = buttons[0]; // we need something to fall back on
 
-    static const std::unordered_map<std::string, int> spriteImportantness = {
-        { "GJ_arrow_03_001.png", 1 }, // back button, really just a fallback
-        { "GJ_closeBtn_001.png", 1 }, // same
+    static const std::unordered_map<std::string_view, int> spriteImportantness = {
+        { "GJ_arrow_03_001.png", 2 }, // back button, really just a fallback
+        { "GJ_closeBtn_001.png", 2 }, // same
 
-        { "GJ_infoIcon_001.png", 2 }, // info btn
+        { "GJ_infoIcon_001.png", 1 }, // info btn if there's literally nothing else
 
         { "GJ_chatBtn_001.png", 5 }, // commenting
         { "GJ_playBtn2_001.png", 5 }, // play button
@@ -178,17 +183,24 @@ cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCM
         { "GJ_playBtn_001.png", 10 } // menulayer
     };
 
-    static const std::unordered_map<std::string, int> buttonSpriteImportantness = {
+    static const std::unordered_map<std::string_view, int> buttonSpriteImportantness = {
+        // most popups and stuff
         { "ok", 5 },
         { "yes", 5 },
         { "sure", 5 },
         { "confirm", 5 },
         { "submit", 5 },
-        { "view", 5 },
+        { "open", 5 },
 
+        // levelcells
+        { "view", 5 },
+        { "get it", 5 },
+        { "update", 5 },
+
+        // most popups - negative button
         { "no", -5 },
         { "cancel", -5 },
-        { "exit", -5 },
+        { "exit", -6 },
     };
 
     for (auto button : buttons) {
@@ -278,5 +290,45 @@ bool cl::utils::isNodeOffscreen(cocos2d::CCNode *node) {
     if (bb.getMinY() > winSize.height) return true;
     if (bb.getMaxY() < 0) return true;
 
+    return cl::utils::isNodeClipped(node);
+}
+
+bool cl::utils::isNodeClipped(cocos2d::CCNode* node) {
+    if (!node || !node->getParent()) return false;
+
+    cocos2d::CCRect stencilBB;
+
+    if (auto clip = cl::utils::findParentOfType<cocos2d::CCClippingNode*>(node)) {
+        // ccclippingnode
+        auto oldParent = clip->m_pStencil->m_pParent;
+        clip->m_pStencil->m_pParent = clip;
+        stencilBB = cl::utils::getNodeBoundingBox(clip->m_pStencil);
+        clip->m_pStencil->m_pParent = oldParent;
+    } else if (auto scrollLayer = cl::utils::findParentOfType<geode::ScrollLayer*>(node)) {
+        // scrolllayer
+        stencilBB = cl::utils::getNodeBoundingBox(scrollLayer);
+    } else if (auto tableView = cl::utils::findParentOfType<TableView*>(node)) {
+        // tableview
+        stencilBB = cl::utils::getNodeBoundingBox(tableView);
+    } else {
+        return false; // no clippinglayer or scrolllayer
+    }
+
+    auto bb = cl::utils::getNodeBoundingBox(node);
+
+    if (!bb.intersectsRect(stencilBB)) {
+        // child is ouside stencil bounding box
+        // this will not work for weirdly shaped stencils as it only checks its
+        // bounding box and doesnt actually render anything
+        return true;
+    }
+
     return false;
+}
+
+template <class T>
+T cl::utils::findParentOfType(cocos2d::CCNode* node) {
+    if (auto cast = geode::cast::typeinfo_cast<T>(node)) return cast;
+    else if (!node->getParent()) return nullptr;
+    else return cl::utils::findParentOfType<T>(node->getParent());
 }

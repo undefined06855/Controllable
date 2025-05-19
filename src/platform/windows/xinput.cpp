@@ -3,6 +3,14 @@
 XInputGetState_t _XInputGetState = nullptr;
 
 $execute {
-    // TODO: maybe load xinput not like this
-    _XInputGetState = (XInputGetState_t)GetProcAddress(LoadLibrary("XInput1_4.dll"), "XInputGetState");
+    auto xinput = GetModuleHandle("XInput1_4.dll");
+    if (!xinput) {
+        xinput = GetModuleHandle("XInput1_4.dll");
+    }
+
+    if (!xinput) {
+        geode::log::warn("lol no xinput");
+    }
+
+    _XInputGetState = (XInputGetState_t)GetProcAddress(xinput, "XInputGetState");
 }
