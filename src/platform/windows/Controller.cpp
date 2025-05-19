@@ -1,6 +1,8 @@
 #include "../../Controller.hpp"
 #include "xinput.hpp"
 
+#ifdef GEODE_IS_WINDOWS
+
 Controller g_controller;
 
 Controller::Controller()
@@ -65,13 +67,13 @@ Direction Controller::directionPressed() {
     if (m_state.buttonLeft) return Direction::Left;
     if (m_state.buttonRight) return Direction::Right;
 
-    static float stickDeadzone = .1f;
+    static float stickActivationDeadzone = .4f;
 
     // joystick
-    if (m_state.joyLeftY > stickDeadzone) return Direction::Up;
-    if (m_state.joyLeftY < -stickDeadzone) return Direction::Down;
-    if (m_state.joyLeftX < -stickDeadzone) return Direction::Left;
-    if (m_state.joyLeftX > stickDeadzone) return Direction::Right;
+    if (m_state.joyLeftY > stickActivationDeadzone) return Direction::Up;
+    if (m_state.joyLeftY < -stickActivationDeadzone) return Direction::Down;
+    if (m_state.joyLeftX < -stickActivationDeadzone) return Direction::Left;
+    if (m_state.joyLeftX > stickActivationDeadzone) return Direction::Right;
 
     return Direction::None;
 }
@@ -96,10 +98,12 @@ GamepadButton Controller::gamepadButtonPressed() {
     return GamepadButton::None;
 }
 
-float Controller::getRightJoyY() {
-    static float stickDeadzone = .1f;
-
-    if (m_state.joyRightY < stickDeadzone && m_state.joyRightY > -stickDeadzone) return 0.f; // deadzone
-    
-    return m_state.joyRightY;
+cocos2d::CCPoint Controller::getLeftJoystick() {
+    return { m_state.joyLeftX, m_state.joyLeftY };
 }
+
+cocos2d::CCPoint Controller::getRightJoystick() {
+    return { m_state.joyRightX, m_state.joyRightY };
+}
+
+#endif

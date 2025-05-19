@@ -34,7 +34,19 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     auto direction = g_controller.directionJustPressed();
     auto buttonPressed = g_controller.gamepadButtonJustPressed();
     auto buttonReleased = g_controller.gamepadButtonJustReleased();
-    auto scroll = g_controller.getRightJoyY();
+    auto buttonPressing = g_controller.gamepadButtonPressed();
+
+    // slider shenanigans
+    if (g_isAdjustingSlider) {
+        g_sliderNextFrame = g_controller.getLeftJoystick().x;
+
+        if (buttonPressing == GamepadButton::Left) {
+            g_sliderNextFrame = -1.f;
+        } else if (buttonPressing == GamepadButton::Right) {
+            g_sliderNextFrame = 1.f;
+        }
+    }
+
 
     if (direction != Direction::None) {
         focusInDirection(direction);
@@ -48,7 +60,8 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
         depressButton(buttonReleased);
     }
 
-    g_scrollNextFrame = -scroll;
+    // scrolling
+    g_scrollNextFrame = -g_controller.getRightJoystick().y;
 
     updateDrawNode();
 }
@@ -61,10 +74,15 @@ void HookedCCApplication::focusInDirection(Direction direction) {
         depressButton(cl::utils::directionToButton(direction));
         return;
     }
+
+    if (g_isAdjustingSlider) return;
     
-    // find buttons with shrunken, enlarged and extreme rect types
-    static const std::array<TryFocusRectType, 3> rectTypes = {
-        TryFocusRectType::Shrunken, TryFocusRectType::Enlarged, TryFocusRectType::Extreme
+    // find buttons with shrunken, enlarged, further enlarged and extreme rect types
+    static const std::array<TryFocusRectType, 4> rectTypes = {
+        TryFocusRectType::Shrunken,
+        TryFocusRectType::Enlarged,
+        TryFocusRectType::FurtherEnlarged,
+        TryFocusRectType::Extreme
     };
     
     auto buttonRect = cl::utils::getNodeBoundingBox(g_button);
@@ -80,8 +98,6 @@ void HookedCCApplication::focusInDirection(Direction direction) {
             return;
         }
     }
-
-    // else just fucking give up
 }
 
 cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCMenuItem*> buttons) {
@@ -249,7 +265,7 @@ void HookedCCApplication::pressButton(GamepadButton button) {
     if (button == GamepadButton::A) {
         if (!g_button) return;
         g_button->selected();
-    } else if (button == GamepadButton::B) {
+    } else if (button == GamepadButton::B && !g_isAdjustingSlider) {
         // B button simulates escape key
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::KEY_Escape, true, false);
     }
@@ -283,11 +299,42 @@ void HookedCCApplication::depressButton(GamepadButton button) {
     }
 
     if (button == GamepadButton::A) {
+        // a button activates button unless its a slider thumb
         if (!g_button) return;
+        
+        // deselect slider if we are
+        if (g_isAdjustingSlider) {
+            g_isAdjustingSlider = false;
+            g_button->unselected();
+            return;
+        }
+
+        // select slider if we aren't
+        if (geode::cast::typeinfo_cast<SliderThumb*>(g_button)) {
+            g_isAdjustingSlider = true;
+            return;
+        }
+
         g_button->activate();
     } else if (button == GamepadButton::B) {
-        // B button simulates escape key
+        // B button simulates escape key unless on slider
+
+        // deselect slider if we are
+        if (g_isAdjustingSlider) {
+            g_isAdjustingSlider = false;
+            g_button->unselected();
+            return;
+        }
+
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::KEY_Escape, false, false);
+    } else if (button == GamepadButton::L) {
+        // press any left buttons onscreen
+        auto left = cl::utils::findNavArrow(NavigationArrowType::Left);
+        if (left) left->activate();
+    } else if (button == GamepadButton::R) {
+        // press any right buttons onscreen
+        auto right = cl::utils::findNavArrow(NavigationArrowType::Right);
+        if (right) right->activate();
     }
 }
 

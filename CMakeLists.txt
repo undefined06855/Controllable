@@ -13,6 +13,7 @@ project(Controllable VERSION 1.0.0)
 file(GLOB_RECURSE SOURCES
     src/*.cpp
     src/hooks/*.cpp
+    src/hooks/compat/*.cpp
     src/platform/*/*.cpp
 )
 add_library(${PROJECT_NAME} SHARED ${SOURCES})

@@ -1,5 +1,5 @@
 #include "LevelEditorLayer.hpp"
-#include "../globals.hpp"
+#include "../../globals.hpp"
 
 bool HookedLevelEditorLayer::init(GJGameLevel* level, bool p1) {
     if (!LevelEditorLayer::init(level, p1)) return false;

@@ -27,6 +27,7 @@ public:
     Direction directionPressed();
     GamepadButton gamepadButtonPressed();
 
-    float getRightJoyY();
+    cocos2d::CCPoint getLeftJoystick();
+    cocos2d::CCPoint getRightJoystick();
 };
 extern Controller g_controller;
