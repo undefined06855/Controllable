@@ -2,12 +2,12 @@
 #include "utils.hpp"
 
 struct ControllerState {
-    bool buttonA, buttonB, buttonX, buttonY,
-         buttonStart, buttonSelect,
-         buttonL, buttonR, buttonZL, buttonZR,
-         buttonUp, buttonDown, buttonLeft, buttonRight;
-    float joyLeftX, joyLeftY,
-          joyRightX, joyRightY;
+    bool m_buttonA, m_buttonB, m_buttonX, m_buttonY,
+         m_buttonStart, m_buttonSelect,
+         m_buttonL, m_buttonR, m_buttonZL, m_buttonZR,
+         m_buttonUp, m_buttonDown, m_buttonLeft, m_buttonRight;
+    float m_joyLeftX, m_joyLeftY,
+          m_joyRightX, m_joyRightY;
 };
 
 class Controller {
