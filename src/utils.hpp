@@ -18,17 +18,26 @@ enum class NavigationArrowType {
     Left, Right
 };
 
+enum class FocusInteractionType {
+    Unselect, Select, Activate
+};
+
+enum class FocusableNodeType {
+    Unknown, Button, TextInput
+};
+
 namespace cl::utils {
 
-std::vector<cocos2d::CCMenuItem*> gatherAllButtons(cocos2d::CCNode* node);
-std::vector<cocos2d::CCMenuItem*> gatherAllButtons(cocos2d::CCNode* node, bool important);
+std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node);
+std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node, bool important);
 cocos2d::CCRect getNodeBoundingBox(cocos2d::CCNode* node);
 cocos2d::CCRect createTryFocusRect(cocos2d::CCRect initialButtonRect, TryFocusRectType type, Direction direction);
-cocos2d::CCMenuItem* findMostImportantButton(std::vector<cocos2d::CCMenuItem*>& buttons);
+cocos2d::CCNode* findMostImportantButton(std::vector<cocos2d::CCNode*>& buttons);
 
 GamepadButton directionToButton(Direction direction);
 
 bool isPlayingLevel();
+bool isKeybindPopupOpen();
 
 bool isNodeOffscreen(cocos2d::CCNode* node);
 bool isNodeClipped(cocos2d::CCNode* node);
@@ -38,5 +47,10 @@ T findParentOfType(cocos2d::CCNode* node);
 geode::Result<std::string> getSpriteNodeFrameName(cocos2d::CCSprite* sprite);
 
 cocos2d::CCMenuItem* findNavArrow(NavigationArrowType type);
+
+bool interactWithFocusableElement(cocos2d::CCNode* node, FocusInteractionType interaction);
+
+FocusableNodeType getFocusableNodeType(cocos2d::CCNode* node);
+bool buttonIsActuallySliderThumb(cocos2d::CCNode* button);
 
 }

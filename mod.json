@@ -13,6 +13,7 @@
 	"developer": "undefined0",
 	"description": "A mod that improves GD's controller support!",
 	"tags": [ "enhancement", "interface", "universal" ],
+	"early-load": true,
 
 	"links": {
 		"source": "https://github.com/undefined06855/Controllable"

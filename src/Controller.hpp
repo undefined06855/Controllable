@@ -21,6 +21,7 @@ public:
     void update();
 
     Direction directionJustPressed();
+    Direction directionJustReleased();
     GamepadButton gamepadButtonJustPressed();
     GamepadButton gamepadButtonJustReleased();
 

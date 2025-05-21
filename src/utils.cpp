@@ -1,10 +1,10 @@
 #include "utils.hpp"
 
-std::vector<cocos2d::CCMenuItem*> cl::utils::gatherAllButtons(cocos2d::CCNode* node) {
+std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node) {
     return cl::utils::gatherAllButtons(node, node == cocos2d::CCScene::get());
 }
 
-std::vector<cocos2d::CCMenuItem*> cl::utils::gatherAllButtons(cocos2d::CCNode* node, bool important) {
+std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node, bool important) {
     if (!node) return {};
     if (!node->isVisible()) return {};
 
@@ -43,20 +43,25 @@ std::vector<cocos2d::CCMenuItem*> cl::utils::gatherAllButtons(cocos2d::CCNode* n
     // find the topmost popup in this layer
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) {
+            geode::log::debug("found gjdropdownlayer, this is an important node");
             return cl::utils::gatherAllButtons(node, true);
         }
     }
 
-    std::vector<cocos2d::CCMenuItem*> ret = {};
+    std::vector<cocos2d::CCNode*> ret = {};
+    ret.reserve(10);
 
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (
-            child->getUserObject("is-button"_spr)
-            && static_cast<cocos2d::CCMenuItem*>(child)->isEnabled()
+            child->getUserObject("is-focusable"_spr)
             && !cl::utils::isNodeOffscreen(child)
             && child->isVisible()
         ) {
-            ret.push_back(static_cast<cocos2d::CCMenuItem*>(child));
+            auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(child);
+            auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(child);
+            if ((asButton && asButton->isEnabled()) || asInput) {
+                ret.push_back(child);
+            }
         }
 
         for (auto button : cl::utils::gatherAllButtons(child)) {
@@ -75,27 +80,35 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
     auto bl = node->getParent()->convertToWorldSpace({ ret.getMinX(), ret.getMinY() });
     auto tr = node->getParent()->convertToWorldSpace({ ret.getMaxX(), ret.getMaxY() });
 
-    return cocos2d::CCRect{ bl.x, bl.y, tr.x - bl.x, tr.y - bl.y };
+    auto rect = cocos2d::CCRect{ bl.x, bl.y, tr.x - bl.x, tr.y - bl.y };
+
+    // dont like this hardcoded hmm
+    // TODO: maybe change this?
+    if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) {
+        rect.origin.y -= rect.size.height / 2.f;
+    }
+
+    return rect;
 }
 
 cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect, TryFocusRectType type, Direction direction) {
     cocos2d::CCRect tryFocusRect = initialButtonRect;
 
     // adjust initial pos to ensure the rect is to one side of the button
-    // +8 to ensure buttons that are on the same secondary axis or overlapping
+    // +20 to ensure buttons that are on the same secondary axis or overlapping
     // dont get selected
     switch (direction) {
         case Direction::Up:
-            tryFocusRect.origin.y += initialButtonRect.size.height + 8.f;
+            tryFocusRect.origin.y += initialButtonRect.size.height + 20.f;
             break;
         case Direction::Down:
-            tryFocusRect.origin.y -= initialButtonRect.size.height + 8.f;
+            tryFocusRect.origin.y -= initialButtonRect.size.height + 20.f;
             break;
         case Direction::Left:
-            tryFocusRect.origin.x -= initialButtonRect.size.width + 8.f;
+            tryFocusRect.origin.x -= initialButtonRect.size.width + 20.f;
             break;
         case Direction::Right:
-            tryFocusRect.origin.x += initialButtonRect.size.width + 8.f;
+            tryFocusRect.origin.x += initialButtonRect.size.width + 20.f;
             break;
         case Direction::None:
             break;
@@ -105,12 +118,10 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
     float distance;
     switch (type) {
         case TryFocusRectType::Shrunken:
+            distance = 60.f;
+            break;
         case TryFocusRectType::Enlarged:
-            if (direction == Direction::Up || direction == Direction::Down) {
-                distance = 200.f;
-            } else {
-                distance = 100.f;
-            }
+            distance = 100.f;
             break;
         case TryFocusRectType::FurtherEnlarged:
         case TryFocusRectType::Extreme:
@@ -182,19 +193,22 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
     return tryFocusRect;
 }
 
-cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCMenuItem*>& buttons) {
+cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*>& buttons) {
     int mostImportantImportantness = -1;
-    cocos2d::CCMenuItem* mostImportantButton = buttons[0]; // we need something to fall back on
+    cocos2d::CCNode* mostImportantButton = buttons[0]; // we need something to fall back on
 
     static const std::unordered_map<std::string_view, int> spriteImportantness = {
-        { "GJ_arrow_03_001.png", 2 }, // back button, really just a fallback
-        { "GJ_closeBtn_001.png", 2 }, // same
+        { "GJ_arrow_01_001.png", 2 }, // back/exit buttons, really just a fallback
+        { "GJ_arrow_02_001.png", 2 },
+        { "GJ_arrow_03_001.png", 2 },
+        { "GJ_closeBtn_001.png", 2 },
 
         { "GJ_infoIcon_001.png", 1 }, // info btn if there's literally nothing else
 
         { "GJ_chatBtn_001.png", 5 }, // commenting
         { "GJ_playBtn2_001.png", 5 }, // play button
         { "GJ_createBtn_001.png", 5 }, // create button in creatorlayer
+        { "controllerBtn_Start_001.png", 5 }, // start button
         { "GJ_playBtn_001.png", 10 } // menulayer
     };
 
@@ -206,6 +220,7 @@ cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCM
         { "confirm", 5 },
         { "submit", 5 },
         { "open", 5 },
+        { "add", 5 }, // ck in mind
 
         // for most layers this prioritises the button in the most top left
         // corner, not the button you're most likely going to be navigating to
@@ -219,6 +234,7 @@ cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCM
         { "account", 4 },
         { "save", 4 },
         { "links", 4 },
+        { "refresh login", 4 },
 
         // most popups - negative button
         { "no", -5 },
@@ -226,15 +242,25 @@ cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCM
         { "exit", -6 },
     };
 
+    static const std::unordered_map<std::string_view, int> buttonIDImportantness = {
+        { "level-button", 5 }, // levelselectlayer
+        { "tower-button", 5 },
+        { "secret-door-button", 5 },
+
+        { "account-button", 5}, // settings
+    };
+
     for (auto button : buttons) {
+        if (!geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(button)) continue;
         int importantness = 0;
         
         // check if this contains a sprite
         auto sprite = button->getChildByType<cocos2d::CCSprite*>(0);
         if (sprite) {
-            auto frameName = cl::utils::getSpriteNodeFrameName(sprite);
-            if (frameName.isOk() && spriteImportantness.contains(frameName.unwrap())) {
-                importantness += spriteImportantness.at(frameName.unwrap());
+            auto _frameName = cl::utils::getSpriteNodeFrameName(sprite);
+            auto frameName = _frameName.unwrapOr("");
+            if (_frameName.isOk() && spriteImportantness.contains(frameName)) {
+                importantness += spriteImportantness.at(frameName);
             }
         }
 
@@ -247,6 +273,14 @@ cocos2d::CCMenuItem* cl::utils::findMostImportantButton(std::vector<cocos2d::CCM
 
             if (buttonSpriteImportantness.contains(caption)) {
                 importantness += buttonSpriteImportantness.at(caption);
+            }
+        }
+
+        // check if this has an id
+        auto id = button->getID();
+        if (id != "") {
+            if (buttonIDImportantness.contains(id)) {
+                importantness += buttonIDImportantness.at(id);
             }
         }
 
@@ -289,7 +323,45 @@ bool cl::utils::isPlayingLevel() {
     if (!GJBaseGameLayer::get()) return false; // no playlayer
     if (LevelEditorLayer::get()) return true; // leveleditorlayer
     if (cocos2d::CCScene::get()->getChildrenCount() == geode::SceneManager::get()->getPersistedNodes().size() + 1) return true; // only playlayer
-    return false; // playlayer and something else
+    
+    // playlayer and something else - see if any other children have >1 child
+    for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
+        if (child != GJBaseGameLayer::get() && child->getChildrenCount() > 0) return false;
+    }
+    
+    return true; // playlayer and nothing else
+}
+
+// thank you devtools
+bool cl::utils::isKeybindPopupOpen() {
+    for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
+#ifdef GEODE_IS_WINDOWS
+    std::string_view nodeName = typeid(*child).name();
+    if (nodeName.starts_with("class ")) nodeName.remove_prefix(6);
+    if (nodeName.starts_with("struct ")) nodeName.remove_prefix(7);
+#else
+    std::string nodeName;
+
+    int status = 0;
+    auto demangle = abi::__cxa_demangle(typeid(*child).name(), 0, 0, &status);
+    if (status == 0) {
+        ret = demangle;
+    }
+    free(demangle);
+#endif
+
+        if (nodeName == "EnterBindLayer") {
+            auto layer = static_cast<cocos2d::CCLayer*>(child->getChildren()->objectAtIndex(0));
+            auto label = layer->getChildByType<cocos2d::CCLabelBMFont*>(1);
+            if (label && label->getOpacity() == 155) {
+                return true; // it wants a keybind right now
+            }
+
+            return false; // it doesn't
+        }
+    }
+
+    return false;
 }
 
 bool cl::utils::isNodeOffscreen(cocos2d::CCNode *node) {
@@ -382,6 +454,8 @@ cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
     geode::log::debug("Searching {} buttons for a nav button...", buttons.size());
 
     for (auto button : buttons) {
+        if (!geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(button)) continue;
+
         auto sprite = button->getChildByType<cocos2d::CCSprite*>(0);
         if (sprite) {
             auto _frameName = cl::utils::getSpriteNodeFrameName(sprite);
@@ -406,14 +480,74 @@ cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
                     }
 
                     // probably isnt!
-                    return button;
+                    return static_cast<cocos2d::CCMenuItem*>(button);
                 } else {
                     // it wont be
-                    return button;
+                    return static_cast<cocos2d::CCMenuItem*>(button);
                 }
             }
         }
     }
 
     return nullptr;
+}
+
+bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInteractionType interaction) {
+    if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node)) {
+        switch(interaction) {
+            case FocusInteractionType::Unselect:
+                cast->unselected();
+                break;
+            case FocusInteractionType::Select:
+                cast->selected();
+                break;
+            case FocusInteractionType::Activate:
+                cast->activate();
+                break;
+        }
+
+        return true;
+    }
+
+    if (auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(node)) {
+        switch(interaction) {
+            case FocusInteractionType::Unselect: {
+                auto touch = new cocos2d::CCTouch;
+                auto bb = cl::utils::getNodeBoundingBox(node);
+                touch->autorelease();
+                touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 9999, 9999);
+                cast->ccTouchBegan(touch, nullptr);
+                break;
+            }
+
+            case FocusInteractionType::Select:
+            case FocusInteractionType::Activate: {
+                auto touch = new cocos2d::CCTouch;
+                auto bb = cl::utils::getNodeBoundingBox(node);
+                // TODO: doesnt work in the bindings menu but works everywhere else?
+                // https://discord.com/channels/911701438269386882/911702535373475870/1374536776361967677
+                auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
+                point = cocos2d::CCDirector::get()->convertToGL(point);
+                touch->autorelease();
+                touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);
+                cast->ccTouchBegan(touch, nullptr);
+                break;
+            }
+        }
+
+        return true;
+    }
+    
+    geode::log::warn("No interactions set up for node {} - attempting {}!", node, (int)interaction);
+    return false;
+}
+
+FocusableNodeType cl::utils::getFocusableNodeType(cocos2d::CCNode* node) {
+    if (node->getUserObject("is-button"_spr)) return FocusableNodeType::Button;
+    if (node->getUserObject("is-text-input"_spr)) return FocusableNodeType::TextInput;
+    return FocusableNodeType::Unknown;
+}
+
+bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
+    return geode::cast::typeinfo_cast<SliderThumb*>(button);
 }

@@ -9,7 +9,7 @@ class $modify(HookedCCApplication, cocos2d::CCApplication) {
 
     // direction
     void focusInDirection(Direction direction);
-    cocos2d::CCMenuItem* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCMenuItem*> buttons);
+    cocos2d::CCNode* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons);
 
     // face buttons
     void pressButton(GamepadButton button);

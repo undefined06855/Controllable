@@ -34,6 +34,7 @@ void Controller::update() {
     m_state.m_buttonLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
     m_state.m_buttonRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
 
+    // add setting
     static byte triggerDeadzone = 26;
     m_state.m_buttonZL = state.Gamepad.bLeftTrigger > triggerDeadzone;
     m_state.m_buttonZR = state.Gamepad.bRightTrigger > triggerDeadzone;
@@ -46,6 +47,11 @@ void Controller::update() {
 
 Direction Controller::directionJustPressed() {
     if (m_lastDirection != directionPressed()) return directionPressed();
+    return Direction::None;
+}
+
+Direction Controller::directionJustReleased() {
+    if (m_lastDirection != directionPressed()) return m_lastDirection;
     return Direction::None;
 }
 
@@ -67,6 +73,7 @@ Direction Controller::directionPressed() {
     if (m_state.m_buttonLeft) return Direction::Left;
     if (m_state.m_buttonRight) return Direction::Right;
 
+    // add setting
     static float stickActivationDeadzone = .4f;
 
     // joystick

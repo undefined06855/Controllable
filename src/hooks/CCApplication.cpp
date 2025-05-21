@@ -9,6 +9,8 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
     g_controller.update();
 
+    if (!cocos2d::CCScene::get()) return;
+
     // should be covered by the cclayer hooks but just in case
     if (cocos2d::CCDirector::get()->getIsTransitioning()) {
         g_button = nullptr;
@@ -31,7 +33,9 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     }
 
     // do the shit
-    auto direction = g_controller.directionJustPressed();
+    auto directionPressed = g_controller.directionJustPressed();
+    auto directionReleased = g_controller.directionJustReleased();
+    auto directionPressing = g_controller.directionPressed();
     auto buttonPressed = g_controller.gamepadButtonJustPressed();
     auto buttonReleased = g_controller.gamepadButtonJustReleased();
     auto buttonPressing = g_controller.gamepadButtonPressed();
@@ -47,9 +51,36 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
         }
     }
 
+    // text tshenanigans
+    if (g_isEditingText) {
+        auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(g_button.data());
 
-    if (direction != Direction::None) {
-        focusInDirection(direction);
+        // use text repeat timer for pressing buttons, but if we've just pressed
+        // a button, ignore text repeat timer
+        // add setting
+        if (g_editingTextRepeatTimer > .1f) {
+            g_editingTextRepeatTimer = 0.f;
+
+            // pressing - take timer into account
+            if (directionPressing == Direction::Left || buttonPressing == GamepadButton::Left) {
+                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
+            } else if (directionPressing == Direction::Right || buttonPressing == GamepadButton::Right) {
+                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
+            }
+        } else {
+            // just pressed - ignore timer
+            if (directionPressed == Direction::Left || buttonPressed == GamepadButton::Left) {
+                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
+                g_editingTextRepeatTimer = -.1f;
+            } else if (directionPressed == Direction::Right || buttonPressed == GamepadButton::Right) {
+                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
+                g_editingTextRepeatTimer = -.1f;
+            }
+        }
+    }
+
+    if (directionPressed != Direction::None) {
+        focusInDirection(directionPressed);
     }
 
     if (buttonPressed != GamepadButton::None) {
@@ -61,6 +92,7 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     }
 
     // scrolling
+    // add setting for reverse scroll
     g_scrollNextFrame = -g_controller.getRightJoystick().y;
 
     updateDrawNode();
@@ -68,17 +100,15 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
 void HookedCCApplication::focusInDirection(Direction direction) {
     if (!g_button) return;
-    if (cl::utils::isPlayingLevel()) {
+    if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         geode::log::debug("direction fallback");
         pressButton(cl::utils::directionToButton(direction));
         depressButton(cl::utils::directionToButton(direction));
         return;
     }
 
-    if (g_isAdjustingSlider) return;
+    if (g_isAdjustingSlider || g_isEditingText) return;
 
-    // TODO: also find text inputs? idk where to put this todo
-    
     // find buttons with shrunken, enlarged, further enlarged and extreme rect types
     static const std::array<TryFocusRectType, 4> rectTypes = {
         TryFocusRectType::Shrunken,
@@ -86,24 +116,30 @@ void HookedCCApplication::focusInDirection(Direction direction) {
         TryFocusRectType::FurtherEnlarged,
         TryFocusRectType::Extreme
     };
-    
+
     auto buttonRect = cl::utils::getNodeBoundingBox(g_button);
-    std::vector<cocos2d::CCMenuItem*> buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
+    std::vector<cocos2d::CCNode*> buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
     
     for (auto type : rectTypes) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
         if (auto button = attemptFindButton(direction, tryFocusRect, buttons)) {
             geode::log::debug("Found with {}", (int)type);
-            g_button->unselected();
+
+            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+
             g_button = button;
-            if (g_controller.gamepadButtonPressed() == GamepadButton::A) g_button->selected();
+            // if we're already pressing A, select our new button
+            if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
+                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+            }
+
             return;
         }
     }
 }
 
-cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCMenuItem*> buttons) {
-    cocos2d::CCMenuItem* closestButton = nullptr;
+cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons) {
+    cocos2d::CCNode* closestButton = nullptr;
     geode::log::debug("Searching {} buttons", buttons.size());
 
     auto curButtonRect = cl::utils::getNodeBoundingBox(g_button);
@@ -235,12 +271,13 @@ cocos2d::CCMenuItem* HookedCCApplication::attemptFindButton(Direction direction,
 #define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
     case gamepadBtn: \
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocosBtn, press, false); \
+        geode::log::debug("keyboard fallback to {}:{}", (int)button, press); \
         break;
 
 void HookedCCApplication::pressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
-    if (cl::utils::isPlayingLevel()) {
+    if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         // forward to cckeyboarddispatcher for gd built in handling
         switch(button) {
             CONTROLLER_CASE(GamepadButton::A, cocos2d::enumKeyCodes::CONTROLLER_A, true)
@@ -266,8 +303,8 @@ void HookedCCApplication::pressButton(GamepadButton button) {
 
     if (button == GamepadButton::A) {
         if (!g_button) return;
-        g_button->selected();
-    } else if (button == GamepadButton::B && !g_isAdjustingSlider) {
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+    } else if (button == GamepadButton::B && !g_isAdjustingSlider && !g_isEditingText) {
         // B button simulates escape key
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::KEY_Escape, true, false);
     }
@@ -276,55 +313,75 @@ void HookedCCApplication::pressButton(GamepadButton button) {
 void HookedCCApplication::depressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
-    if (cl::utils::isPlayingLevel()) {
-        // forward to cckeyboarddispatcher for gd built in handling
-        switch(button) {
-            CONTROLLER_CASE(GamepadButton::A, cocos2d::enumKeyCodes::CONTROLLER_A, false)
-            CONTROLLER_CASE(GamepadButton::B, cocos2d::enumKeyCodes::CONTROLLER_B, false)
-            CONTROLLER_CASE(GamepadButton::X, cocos2d::enumKeyCodes::CONTROLLER_X, false)
-            CONTROLLER_CASE(GamepadButton::Y, cocos2d::enumKeyCodes::CONTROLLER_Y, false)
-            CONTROLLER_CASE(GamepadButton::Start, cocos2d::enumKeyCodes::CONTROLLER_Start, false)
-            CONTROLLER_CASE(GamepadButton::Select, cocos2d::enumKeyCodes::CONTROLLER_Back, false)
-            CONTROLLER_CASE(GamepadButton::L, cocos2d::enumKeyCodes::CONTROLLER_LB, false)
-            CONTROLLER_CASE(GamepadButton::R, cocos2d::enumKeyCodes::CONTROLLER_RB, false)
-            CONTROLLER_CASE(GamepadButton::ZL, cocos2d::enumKeyCodes::CONTROLLER_LT, false)
-            CONTROLLER_CASE(GamepadButton::ZR, cocos2d::enumKeyCodes::CONTROLLER_RT, false)
-            // only used when this is the fallback from direction
-            CONTROLLER_CASE(GamepadButton::Up, cocos2d::enumKeyCodes::CONTROLLER_Up, false)
-            CONTROLLER_CASE(GamepadButton::Down, cocos2d::enumKeyCodes::CONTROLLER_Down, false)
-            CONTROLLER_CASE(GamepadButton::Left, cocos2d::enumKeyCodes::CONTROLLER_Left, false)
-            CONTROLLER_CASE(GamepadButton::Right, cocos2d::enumKeyCodes::CONTROLLER_Right, false)
-            case GamepadButton::None: break;
-        }
-
-        return;
+    // there's a chance the fallback falls back to the pause button and presses
+    // it (which is fine) - but if this had a similar condition the button would
+    // never be released so the releasing code runs regardless of the playlayer
+    // check
+    switch(button) {
+        CONTROLLER_CASE(GamepadButton::A, cocos2d::enumKeyCodes::CONTROLLER_A, false)
+        CONTROLLER_CASE(GamepadButton::B, cocos2d::enumKeyCodes::CONTROLLER_B, false)
+        CONTROLLER_CASE(GamepadButton::X, cocos2d::enumKeyCodes::CONTROLLER_X, false)
+        CONTROLLER_CASE(GamepadButton::Y, cocos2d::enumKeyCodes::CONTROLLER_Y, false)
+        CONTROLLER_CASE(GamepadButton::Start, cocos2d::enumKeyCodes::CONTROLLER_Start, false)
+        CONTROLLER_CASE(GamepadButton::Select, cocos2d::enumKeyCodes::CONTROLLER_Back, false)
+        CONTROLLER_CASE(GamepadButton::L, cocos2d::enumKeyCodes::CONTROLLER_LB, false)
+        CONTROLLER_CASE(GamepadButton::R, cocos2d::enumKeyCodes::CONTROLLER_RB, false)
+        CONTROLLER_CASE(GamepadButton::ZL, cocos2d::enumKeyCodes::CONTROLLER_LT, false)
+        CONTROLLER_CASE(GamepadButton::ZR, cocos2d::enumKeyCodes::CONTROLLER_RT, false)
+        // only used when this is the fallback from direction
+        CONTROLLER_CASE(GamepadButton::Up, cocos2d::enumKeyCodes::CONTROLLER_Up, false)
+        CONTROLLER_CASE(GamepadButton::Down, cocos2d::enumKeyCodes::CONTROLLER_Down, false)
+        CONTROLLER_CASE(GamepadButton::Left, cocos2d::enumKeyCodes::CONTROLLER_Left, false)
+        CONTROLLER_CASE(GamepadButton::Right, cocos2d::enumKeyCodes::CONTROLLER_Right, false)
+        case GamepadButton::None: break;
     }
 
+
     if (button == GamepadButton::A) {
-        // a button activates button unless its a slider thumb
+        // a button activates button
         if (!g_button) return;
         
         // deselect slider if we are
         if (g_isAdjustingSlider) {
             g_isAdjustingSlider = false;
-            g_button->unselected();
+            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             return;
         }
 
-        // select slider if we aren't
-        if (geode::cast::typeinfo_cast<SliderThumb*>(g_button)) {
+        // deselect text input if we are
+        if (g_isEditingText) {
+            g_isEditingText = false;
+            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+            return;
+        }
+
+        // select slider if we aren't and this is a slider
+        if (cl::utils::buttonIsActuallySliderThumb(g_button)) {
             g_isAdjustingSlider = true;
             return;
         }
 
-        g_button->activate();
+        // select text input if we aren't and this is a text input
+        if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::TextInput) {
+            g_isEditingText = true;
+            return;
+        }
+
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Activate);
     } else if (button == GamepadButton::B) {
         // B button simulates escape key unless on slider
 
         // deselect slider if we are
         if (g_isAdjustingSlider) {
             g_isAdjustingSlider = false;
-            g_button->unselected();
+            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+            return;
+        }
+
+        // deselect text input if we are
+        if (g_isEditingText) {
+            g_isEditingText = false;
+            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             return;
         }
 
@@ -340,7 +397,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
     }
 }
 
-#undef SEND_CONTROLLER_BTN
+#undef CONTROLLER_CASE
 
 void HookedCCApplication::updateDrawNode() {
     // lol nobody uses notification node, might as well steal it
@@ -356,4 +413,9 @@ void HookedCCApplication::updateDrawNode() {
         auto rect = cl::utils::getNodeBoundingBox(g_button);
         g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
     }
+
+    // for (auto button : cl::utils::gatherAllButtons(cocos2d::CCScene::get())) {
+    //     auto rect = cl::utils::getNodeBoundingBox(button);
+    //     g_overlay->drawRect(rect, { 0, 0, 0, 0 }, .6f, { 0, 1, 0, 1 });
+    // }
 }
