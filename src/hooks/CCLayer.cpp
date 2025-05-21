@@ -8,7 +8,7 @@ void HookedCCLayer::onEnter() {
 
     geode::log::debug("{}", this);
 
-    if (getParent() == cocos2d::CCScene::get() || geode::cast::typeinfo_cast<GJDropDownLayer*>(this)) {
+    if (getParent() == cocos2d::CCScene::get() || cl::utils::shouldTreatParentAsImportant(this)) {
         if (g_button) {
             if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::TextInput) g_isEditingText = false;
             if (cl::utils::buttonIsActuallySliderThumb(g_button)) g_isAdjustingSlider = false;

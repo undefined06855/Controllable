@@ -40,6 +40,11 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     auto buttonReleased = g_controller.gamepadButtonJustReleased();
     auto buttonPressing = g_controller.gamepadButtonPressed();
 
+    // update g_isUsingController
+    if (buttonPressed != GamepadButton::None || directionPressed != Direction::None) {
+        g_isUsingController = true;
+    }
+
     // slider shenanigans
     if (g_isAdjustingSlider) {
         g_sliderNextFrame = g_controller.getLeftJoystick().x;
@@ -54,6 +59,11 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     // text tshenanigans
     if (g_isEditingText) {
         auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(g_button.data());
+        if (!cast) {
+            geode::log::warn("was editing text but not focused on a text input!");
+            g_isEditingText = false;
+            return; // just in case
+        }
 
         // use text repeat timer for pressing buttons, but if we've just pressed
         // a button, ignore text repeat timer
@@ -93,7 +103,9 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
     // scrolling
     // add setting for reverse scroll
-    g_scrollNextFrame = -g_controller.getRightJoystick().y;
+    if (!cl::utils::isPlayingLevel()) {
+        g_scrollNextFrame = -g_controller.getRightJoystick().y;
+    }
 
     updateDrawNode();
 }
@@ -122,7 +134,8 @@ void HookedCCApplication::focusInDirection(Direction direction) {
     
     for (auto type : rectTypes) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
-        if (auto button = attemptFindButton(direction, tryFocusRect, buttons)) {
+        auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : direction;
+        if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
             geode::log::debug("Found with {}", (int)type);
 
             cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
@@ -271,7 +284,6 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
 #define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
     case gamepadBtn: \
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocosBtn, press, false); \
-        geode::log::debug("keyboard fallback to {}:{}", (int)button, press); \
         break;
 
 void HookedCCApplication::pressButton(GamepadButton button) {
@@ -290,7 +302,7 @@ void HookedCCApplication::pressButton(GamepadButton button) {
             CONTROLLER_CASE(GamepadButton::R, cocos2d::enumKeyCodes::CONTROLLER_RB, true)
             CONTROLLER_CASE(GamepadButton::ZL, cocos2d::enumKeyCodes::CONTROLLER_LT, true)
             CONTROLLER_CASE(GamepadButton::ZR, cocos2d::enumKeyCodes::CONTROLLER_RT, true)
-            // only used when this is the fallback from direction
+            // these will also treat joystick inputs as d-pad inputs but whatever
             CONTROLLER_CASE(GamepadButton::Up, cocos2d::enumKeyCodes::CONTROLLER_Up, true)
             CONTROLLER_CASE(GamepadButton::Down, cocos2d::enumKeyCodes::CONTROLLER_Down, true)
             CONTROLLER_CASE(GamepadButton::Left, cocos2d::enumKeyCodes::CONTROLLER_Left, true)
@@ -328,7 +340,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
         CONTROLLER_CASE(GamepadButton::R, cocos2d::enumKeyCodes::CONTROLLER_RB, false)
         CONTROLLER_CASE(GamepadButton::ZL, cocos2d::enumKeyCodes::CONTROLLER_LT, false)
         CONTROLLER_CASE(GamepadButton::ZR, cocos2d::enumKeyCodes::CONTROLLER_RT, false)
-        // only used when this is the fallback from direction
+        // these will also treat joystick inputs as d-pad inputs but whatever
         CONTROLLER_CASE(GamepadButton::Up, cocos2d::enumKeyCodes::CONTROLLER_Up, false)
         CONTROLLER_CASE(GamepadButton::Down, cocos2d::enumKeyCodes::CONTROLLER_Down, false)
         CONTROLLER_CASE(GamepadButton::Left, cocos2d::enumKeyCodes::CONTROLLER_Left, false)
@@ -399,6 +411,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 
 #undef CONTROLLER_CASE
 
+// TODO: you know
 void HookedCCApplication::updateDrawNode() {
     // lol nobody uses notification node, might as well steal it
     if (!g_overlay) {

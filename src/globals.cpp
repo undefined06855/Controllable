@@ -16,5 +16,4 @@ bool g_isAdjustingSlider = false;
 bool g_isEditingText = false;
 float g_editingTextRepeatTimer = 0.f;
 
-// TODO: make g_isUsingController update
-bool g_isUsingController = true;
+bool g_isUsingController = false;

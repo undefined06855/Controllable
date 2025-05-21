@@ -1,7 +1,5 @@
 #include "xinput.hpp"
 
-#ifdef GEODE_IS_WINDOWS
-
 XInputGetState_t _XInputGetState = nullptr;
 
 $execute {
@@ -16,5 +14,3 @@ $execute {
 
     _XInputGetState = (XInputGetState_t)GetProcAddress(xinput, "XInputGetState");
 }
-
-#endif

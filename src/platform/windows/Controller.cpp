@@ -1,8 +1,6 @@
 #include "../../Controller.hpp"
 #include "xinput.hpp"
 
-#ifdef GEODE_IS_WINDOWS
-
 Controller g_controller;
 
 Controller::Controller()
@@ -112,5 +110,3 @@ cocos2d::CCPoint Controller::getLeftJoystick() {
 cocos2d::CCPoint Controller::getRightJoystick() {
     return { m_state.m_joyRightX, m_state.m_joyRightY };
 }
-
-#endif

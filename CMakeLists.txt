@@ -10,13 +10,29 @@ endif()
 
 project(Controllable VERSION 1.0.0)
 
+
 file(GLOB_RECURSE SOURCES
     src/*.cpp
     src/hooks/*.cpp
     src/hooks/compat/*.cpp
-    src/platform/*/*.cpp
 )
+file(GLOB_RECURSE WINSOURCES
+    src/platform/windows/*.cpp
+    src/platform/windows/hooks/*.cpp
+)
+file(GLOB_RECURSE MACSOURCES
+    src/platform/macos/*.cpp
+    src/platform/macos/hooks/*.cpp
+)
+
+if (WIN32)
+    list(APPEND SOURCES ${WINSOURCES})
+elseif (APPLE)
+    list(APPEND SOURCES ${MACSOURCES})
+endif()
+
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
+
 
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")

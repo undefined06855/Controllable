@@ -1,10 +1,16 @@
 #include "utils.hpp"
 
 std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node) {
-    return cl::utils::gatherAllButtons(node, node == cocos2d::CCScene::get());
+    auto ret = cl::utils::gatherAllButtons(node, node == cocos2d::CCScene::get(), true);
+    if (ret.size() == 0) {
+        // if we find no buttons, retry with offscreen checks disabled
+        ret = cl::utils::gatherAllButtons(node, node == cocos2d::CCScene::get(), false);
+    }
+
+    return ret;
 }
 
-std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node, bool important) {
+std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node, bool important, bool doOffscreenChecks) {
     if (!node) return {};
     if (!node->isVisible()) return {};
 
@@ -22,11 +28,16 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
             }
             if (persisted) continue;
             
+            if (cl::utils::shouldNotTreatAsPopup(child)) {
+                continue;
+            }
+            
             // havent found any yet we need something to fallback to
             if (!highestZOrderChild) {
                 highestZOrderChild = child;
                 continue;
             }
+
 
             if (child->getZOrder() >= highestZOrderChild->getZOrder()) {
                 highestZOrderChild = child;
@@ -42,9 +53,8 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     // important - if so, treat node as an important layer (even if it isnt) to
     // find the topmost popup in this layer
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
-        if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) {
-            geode::log::debug("found gjdropdownlayer, this is an important node");
-            return cl::utils::gatherAllButtons(node, true);
+        if (cl::utils::shouldTreatParentAsImportant(child)) {
+            return cl::utils::gatherAllButtons(node, true, doOffscreenChecks);
         }
     }
 
@@ -54,7 +64,7 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (
             child->getUserObject("is-focusable"_spr)
-            && !cl::utils::isNodeOffscreen(child)
+            && (doOffscreenChecks ? !cl::utils::isNodeOffscreen(child) : true)
             && child->isVisible()
         ) {
             auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(child);
@@ -95,23 +105,36 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
     cocos2d::CCRect tryFocusRect = initialButtonRect;
 
     // adjust initial pos to ensure the rect is to one side of the button
-    // +20 to ensure buttons that are on the same secondary axis or overlapping
+    // +10 to ensure buttons that are on the same secondary axis or overlapping
     // dont get selected
     switch (direction) {
         case Direction::Up:
-            tryFocusRect.origin.y += initialButtonRect.size.height + 20.f;
+            tryFocusRect.origin.y += initialButtonRect.size.height + 10.f;
             break;
         case Direction::Down:
-            tryFocusRect.origin.y -= initialButtonRect.size.height + 20.f;
+            tryFocusRect.origin.y -= initialButtonRect.size.height + 10.f;
             break;
         case Direction::Left:
-            tryFocusRect.origin.x -= initialButtonRect.size.width + 20.f;
+            tryFocusRect.origin.x -= initialButtonRect.size.width + 10.f;
             break;
         case Direction::Right:
-            tryFocusRect.origin.x += initialButtonRect.size.width + 20.f;
+            tryFocusRect.origin.x += initialButtonRect.size.width + 10.f;
             break;
         case Direction::None:
-            break;
+        break;
+    }
+    
+    // minimum size enforcement for the button
+    if (tryFocusRect.size.height < 32.f) {
+        float diff = 32.f - tryFocusRect.size.height;
+        tryFocusRect.origin.y -= diff / 2.f;
+        tryFocusRect.size.height += diff;
+    }
+
+    if (tryFocusRect.size.width < 32.f) {
+        float diff = 32.f - tryFocusRect.size.width;
+        tryFocusRect.origin.x -= diff / 2.f;
+        tryFocusRect.size.width += diff;
     }
 
     // figure out the largest distance the rect should be
@@ -127,8 +150,8 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         case TryFocusRectType::Extreme:
             distance = 1000.f;
             break;
-    }
-
+        }
+        
     // add distance
     switch (direction) {
         case Direction::Up:
@@ -177,18 +200,6 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
     }
 
-    // minimum size enforcement
-    if (tryFocusRect.size.height < 24.f) {
-        float diff = 24.f - tryFocusRect.size.height;
-        tryFocusRect.origin.y -= diff / 2.f;
-        tryFocusRect.size.height += diff;
-    }
-
-    if (tryFocusRect.size.width < 24.f) {
-        float diff = 24.f - tryFocusRect.size.width;
-        tryFocusRect.origin.x -= diff / 2.f;
-        tryFocusRect.size.width += diff;
-    }
 
     return tryFocusRect;
 }
@@ -239,15 +250,13 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         // most popups - negative button
         { "no", -5 },
         { "cancel", -5 },
-        { "exit", -6 },
+        { "exit", -6 }
     };
 
     static const std::unordered_map<std::string_view, int> buttonIDImportantness = {
         { "level-button", 5 }, // levelselectlayer
         { "tower-button", 5 },
-        { "secret-door-button", 5 },
-
-        { "account-button", 5}, // settings
+        { "secret-door-button", 5 }
     };
 
     for (auto button : buttons) {
@@ -322,33 +331,24 @@ GamepadButton cl::utils::directionToButton(Direction direction) {
 bool cl::utils::isPlayingLevel() {
     if (!GJBaseGameLayer::get()) return false; // no playlayer
     if (LevelEditorLayer::get()) return true; // leveleditorlayer
-    if (cocos2d::CCScene::get()->getChildrenCount() == geode::SceneManager::get()->getPersistedNodes().size() + 1) return true; // only playlayer
+    
+    // check if playlayer has a popup-like class
+    for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(GJBaseGameLayer::get()->getChildren())) {
+        if (cl::utils::shouldTreatParentAsImportant(child)) return false;
+    }
     
     // playlayer and something else - see if any other children have >1 child
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
-        if (child != GJBaseGameLayer::get() && child->getChildrenCount() > 0) return false;
+        if (child != GJBaseGameLayer::get() && !cl::utils::shouldNotTreatAsPopup(child)) return false;
     }
-    
-    return true; // playlayer and nothing else
+
+    return true; // playlayer and literally nothing else
 }
 
 // thank you devtools
 bool cl::utils::isKeybindPopupOpen() {
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
-#ifdef GEODE_IS_WINDOWS
-    std::string_view nodeName = typeid(*child).name();
-    if (nodeName.starts_with("class ")) nodeName.remove_prefix(6);
-    if (nodeName.starts_with("struct ")) nodeName.remove_prefix(7);
-#else
-    std::string nodeName;
-
-    int status = 0;
-    auto demangle = abi::__cxa_demangle(typeid(*child).name(), 0, 0, &status);
-    if (status == 0) {
-        ret = demangle;
-    }
-    free(demangle);
-#endif
+        auto nodeName = cl::utils::getNodeClassName(child);
 
         if (nodeName == "EnterBindLayer") {
             auto layer = static_cast<cocos2d::CCLayer*>(child->getChildren()->objectAtIndex(0));
@@ -415,6 +415,26 @@ T cl::utils::findParentOfType(cocos2d::CCNode* node) {
     if (auto cast = geode::cast::typeinfo_cast<T>(node)) return cast;
     else if (!node->getParent()) return nullptr;
     else return cl::utils::findParentOfType<T>(node->getParent());
+}
+
+std::string cl::utils::getNodeClassName(cocos2d::CCNode* node) {
+#ifdef GEODE_IS_WINDOWS
+    std::string_view nodeName = typeid(*node).name();
+    if (nodeName.starts_with("class ")) nodeName.remove_prefix(6);
+    if (nodeName.starts_with("struct ")) nodeName.remove_prefix(7);
+    return std::string(nodeName);
+#else
+    std::string nodeName;
+
+    int status = 0;
+    auto demangle = abi::__cxa_demangle(typeid(*node).name(), 0, 0, &status);
+    if (status == 0) {
+        ret = demangle;
+    }
+    free(demangle);
+
+    return nodeName;
+#endif
 }
 
 geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* sprite) {
@@ -550,4 +570,24 @@ FocusableNodeType cl::utils::getFocusableNodeType(cocos2d::CCNode* node) {
 
 bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
     return geode::cast::typeinfo_cast<SliderThumb*>(button);
+}
+
+// this is used for any time a child is a popup but is added to the current 
+// layer instead of ccscene so it doesnt automatically get treated as the child
+// of an important layer
+bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
+    if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) return true;
+    if (geode::cast::typeinfo_cast<FLAlertLayer*>(child)) return true;
+    return false;
+}
+
+// checked in gather buttons for children of important layers
+bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
+    static constexpr std::array<std::string_view, 3> ids = {
+        "itzkiba.better_progression/tier-popup",
+        "thesillydoggo.qolmod/QOLModButton",
+        "hjfod.quick-volume-controls/overlay",
+    };
+
+    return std::find(ids.begin(), ids.end(), child->getID()) != ids.end();
 }
