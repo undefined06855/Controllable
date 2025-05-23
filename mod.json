@@ -17,5 +17,12 @@
 
 	"links": {
 		"source": "https://github.com/undefined06855/Controllable"
+	},
+
+	"incompatibilities": {
+		"firee.deck": {
+			"version": "*",
+			"importance": "breaking"
+		}
 	}
 }

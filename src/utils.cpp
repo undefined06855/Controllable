@@ -1,4 +1,26 @@
 #include "utils.hpp"
+#include "globals.hpp"
+#include "Controller.hpp"
+#include "hooks/compat/CCNode.hpp"
+
+void cl::utils::clearCurrentButton() {
+    if (!g_button) return;
+
+    static_cast<HookedCCNode*>(g_button.data())->revertShaderProgram();
+    g_button = nullptr;
+}
+
+void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
+    if (!node) return;
+
+    cl::utils::clearCurrentButton();
+
+    g_button = node;
+    static_cast<HookedCCNode*>(g_button.data())->setButtonShaderProgram();
+    if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+    }
+}
 
 std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node) {
     auto ret = cl::utils::gatherAllButtons(node, node == cocos2d::CCScene::get(), true);
@@ -92,8 +114,6 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
 
     auto rect = cocos2d::CCRect{ bl.x, bl.y, tr.x - bl.x, tr.y - bl.y };
 
-    // dont like this hardcoded hmm
-    // TODO: maybe change this?
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) {
         rect.origin.y -= rect.size.height / 2.f;
     }
@@ -544,8 +564,8 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
             case FocusInteractionType::Activate: {
                 auto touch = new cocos2d::CCTouch;
                 auto bb = cl::utils::getNodeBoundingBox(node);
-                // TODO: doesnt work in the bindings menu but works everywhere else?
-                // https://discord.com/channels/911701438269386882/911702535373475870/1374536776361967677
+                // TODO: pr ck to fix the issues its got
+                // https://discord.com/channels/911701438269386882/911702535373475870/1374816706308083883
                 auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                 point = cocos2d::CCDirector::get()->convertToGL(point);
                 touch->autorelease();
@@ -583,10 +603,10 @@ bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
 
 // checked in gather buttons for children of important layers
 bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
-    static constexpr std::array<std::string_view, 3> ids = {
+    static constexpr std::array<std::string_view, 2> ids = {
         "itzkiba.better_progression/tier-popup",
         "thesillydoggo.qolmod/QOLModButton",
-        "hjfod.quick-volume-controls/overlay",
+        // "hjfod.quick-volume-controls/overlay",
     };
 
     return std::find(ids.begin(), ids.end(), child->getID()) != ids.end();

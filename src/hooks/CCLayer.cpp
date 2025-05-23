@@ -15,7 +15,7 @@ void HookedCCLayer::onEnter() {
         }
 
         // find a new button
-        g_button = nullptr;
+        cl::utils::clearCurrentButton();
     }
 }
 
@@ -24,7 +24,7 @@ void HookedCCLayer::onExit() {
     for (auto button : cl::utils::gatherAllButtons(this)) {
         if (g_button == button) {
             geode::log::info("cleared current btn");
-            g_button = nullptr;
+            cl::utils::clearCurrentButton();
         }
     }
 

@@ -28,6 +28,9 @@ enum class FocusableNodeType {
 
 namespace cl::utils {
 
+void clearCurrentButton();
+void setCurrentButton(cocos2d::CCNode* node);
+
 std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node);
 std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node, bool important, bool doOffscreenChecks);
 cocos2d::CCRect getNodeBoundingBox(cocos2d::CCNode* node);

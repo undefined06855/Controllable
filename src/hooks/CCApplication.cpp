@@ -13,13 +13,15 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
     // should be covered by the cclayer hooks but just in case
     if (cocos2d::CCDirector::get()->getIsTransitioning()) {
-        g_button = nullptr;
+        cl::utils::clearCurrentButton();
         return;
     }
 
+    // TODO: DIalogLayer doesnt reset so focus is still on previous layer
+
     // force reset if the button goes offscreen
     if (cl::utils::isNodeOffscreen(g_button)) {
-        g_button = nullptr;
+        cl::utils::clearCurrentButton();
     }
 
     // if playing level, skip no button checks we dont need the button since
@@ -28,7 +30,7 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
         if (!g_button && cocos2d::CCScene::get()) {
             auto buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
             if (buttons.size() == 0) return geode::log::debug("Waiting for buttons...");
-            g_button = cl::utils::findMostImportantButton(buttons);
+            cl::utils::setCurrentButton(cl::utils::findMostImportantButton(buttons));
         }
     }
 
@@ -137,15 +139,8 @@ void HookedCCApplication::focusInDirection(Direction direction) {
         auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : direction;
         if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
             geode::log::debug("Found with {}", (int)type);
-
             cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
-
-            g_button = button;
-            // if we're already pressing A, select our new button
-            if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
-                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
-            }
-
+            cl::utils::setCurrentButton(button);
             return;
         }
     }
@@ -422,10 +417,10 @@ void HookedCCApplication::updateDrawNode() {
 
     g_overlay->clear();
 
-    if (g_button && g_isUsingController) {
-        auto rect = cl::utils::getNodeBoundingBox(g_button);
-        g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
-    }
+    // if (g_button && g_isUsingController) {
+    //     auto rect = cl::utils::getNodeBoundingBox(g_button);
+    //     g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
+    // }
 
     // for (auto button : cl::utils::gatherAllButtons(cocos2d::CCScene::get())) {
     //     auto rect = cl::utils::getNodeBoundingBox(button);
