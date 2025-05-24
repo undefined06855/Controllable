@@ -1,4 +1,5 @@
 #include "LoadingLayer.hpp"
+#include "../globals.hpp"
 
 const GLchar* g_newShaderFragment = R"(
 #ifdef GL_ES
@@ -10,12 +11,13 @@ varying vec2 v_texCoord;
 uniform sampler2D CC_Texture0;
 
 void main() {
-    vec4 baseColor = texture2D(CC_Texture0, v_texCoord);
-
-    if (baseColor.a < 1.0) {
-        discard;
+    vec4 color = texture2D(CC_Texture0, v_texCoord) * v_fragmentColor;
+    if (color.a <= 0.1) {
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        color = vec4(0.0, 0.0, 0.0, 0.0);
     }
-    gl_FragColor = v_fragmentColor * baseColor;
+    gl_FragColor = color;
 }
 )";
 
@@ -42,6 +44,7 @@ void main() {
 bool HookedLoadingLayer::init(bool p0) {
     if (!LoadingLayer::init(p0)) return false;
 
+    // shader stuff
     auto program = new cocos2d::CCGLProgram;
     program->autorelease();
     program->initWithVertexShaderByteArray(g_newShaderVertex, g_newShaderFragment);
@@ -54,6 +57,6 @@ bool HookedLoadingLayer::init(bool p0) {
     program->updateUniforms();
 
     cocos2d::CCShaderCache::sharedShaderCache()->addProgram(program, "SelectedButtonShader"_spr);
-
+    
     return true;
 }

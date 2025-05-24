@@ -2,6 +2,7 @@
 #include "../Controller.hpp"
 #include "../globals.hpp"
 #include "../utils.hpp"
+#include <RenderTexture.hpp>
 
 void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int player) {
     if (!controller->m_controllerConnected) return;
@@ -18,6 +19,7 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     }
 
     // TODO: DIalogLayer doesnt reset so focus is still on previous layer
+    // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
 
     // force reset if the button goes offscreen
     if (cl::utils::isNodeOffscreen(g_button)) {
@@ -343,6 +345,9 @@ void HookedCCApplication::depressButton(GamepadButton button) {
         case GamepadButton::None: break;
     }
 
+    if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
+        return;
+    }
 
     if (button == GamepadButton::A) {
         // a button activates button
@@ -406,24 +411,43 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 
 #undef CONTROLLER_CASE
 
-// TODO: you know
 void HookedCCApplication::updateDrawNode() {
-    // lol nobody uses notification node, might as well steal it
-    if (!g_overlay) {
-        g_overlay = cocos2d::CCDrawNode::create();
-        g_overlay->retain();
-        cocos2d::CCDirector::get()->setNotificationNode(g_overlay);
+    if (true) {
+        // lol nobody uses notification node, might as well steal it
+        if (!g_overlay) {
+            g_overlay = cocos2d::CCDrawNode::create();
+            g_overlay->retain();
+            cocos2d::CCDirector::get()->setNotificationNode(g_overlay);
+        }
+    
+        g_overlay->clear();
+    
+        if (g_button && g_isUsingController) {
+            auto rect = cl::utils::getNodeBoundingBox(g_button);
+            g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
+        }
+    
+        // for (auto button : cl::utils::gatherAllButtons(cocos2d::CCScene::get())) {
+        //     auto rect = cl::utils::getNodeBoundingBox(button);
+        //     g_overlay->drawRect(rect, { 0, 0, 0, 0 }, .6f, { 0, 1, 0, 1 });
+        // }
+    } else {
+        auto director = cocos2d::CCDirector::get();
+        if (!g_buttonOverlay) {
+            auto size = director->getWinSizeInPixels();
+            g_buttonOverlay = RenderTexture(size.width, size.height, GL_RGBA, GL_RGBA).intoManagedSprite();
+            g_buttonOverlay->sprite->setShaderProgram(cocos2d::CCShaderCache::sharedShaderCache()->programForKey("SelectedButtonShader"_spr));
+            g_buttonOverlay->sprite->setFlipY(true);
+            g_buttonOverlay->sprite->ignoreAnchorPointForPosition(true);
+            g_buttonOverlay->sprite->setZOrder(6969);
+            g_buttonOverlay->sprite->retain();
+            g_buttonOverlay->sprite->retain();
+            g_buttonOverlay->sprite->retain();
+            cocos2d::CCDirector::get()->setNotificationNode(g_buttonOverlay->sprite);
+        }
+
+        if (!g_button) return;
+
+        g_buttonOverlay->render.capture(g_button);
     }
-
-    g_overlay->clear();
-
-    // if (g_button && g_isUsingController) {
-    //     auto rect = cl::utils::getNodeBoundingBox(g_button);
-    //     g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
-    // }
-
-    // for (auto button : cl::utils::gatherAllButtons(cocos2d::CCScene::get())) {
-    //     auto rect = cl::utils::getNodeBoundingBox(button);
-    //     g_overlay->drawRect(rect, { 0, 0, 0, 0 }, .6f, { 0, 1, 0, 1 });
-    // }
 }

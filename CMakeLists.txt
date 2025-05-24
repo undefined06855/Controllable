@@ -33,7 +33,6 @@ endif()
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
-
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
 else()
@@ -41,5 +40,8 @@ else()
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
+
+CPMAddPackage("gh:undefined06855/gd-render-texture#5f14d0b")
+target_link_libraries(${PROJECT_NAME} gd-render-texture)
 
 setup_geode_mod(${PROJECT_NAME})

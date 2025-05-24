@@ -1,12 +1,10 @@
 #include "utils.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
-#include "hooks/compat/CCNode.hpp"
 
 void cl::utils::clearCurrentButton() {
     if (!g_button) return;
 
-    static_cast<HookedCCNode*>(g_button.data())->revertShaderProgram();
     g_button = nullptr;
 }
 
@@ -16,7 +14,7 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
     cl::utils::clearCurrentButton();
 
     g_button = node;
-    static_cast<HookedCCNode*>(g_button.data())->setButtonShaderProgram();
+
     if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
     }
@@ -40,16 +38,6 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     if (important) {
         cocos2d::CCNode* highestZOrderChild = nullptr;
         for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
-            // check if this is a persisted node - ignore
-            bool persisted = false;
-            for (auto node : geode::SceneManager::get()->getPersistedNodes()) {
-                if (node == child) {
-                    persisted = true;
-                    break;
-                }
-            }
-            if (persisted) continue;
-            
             if (cl::utils::shouldNotTreatAsPopup(child)) {
                 continue;
             }
@@ -564,8 +552,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
             case FocusInteractionType::Activate: {
                 auto touch = new cocos2d::CCTouch;
                 auto bb = cl::utils::getNodeBoundingBox(node);
-                // TODO: pr ck to fix the issues its got
-                // https://discord.com/channels/911701438269386882/911702535373475870/1374816706308083883
+                // TODO: check if ck pr has been put into a release
                 auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                 point = cocos2d::CCDirector::get()->convertToGL(point);
                 touch->autorelease();
@@ -603,9 +590,17 @@ bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
 
 // checked in gather buttons for children of important layers
 bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
-    static constexpr std::array<std::string_view, 2> ids = {
+    if (child->getChildrenCount() == 0) return true;
+
+    auto persistedNodes = geode::SceneManager::get()->getPersistedNodes();
+    if (std::find(persistedNodes.begin(), persistedNodes.end(), child) != persistedNodes.end()) {
+        return true;
+    }
+
+    static constexpr std::array<std::string_view, 3> ids = {
         "itzkiba.better_progression/tier-popup",
         "thesillydoggo.qolmod/QOLModButton",
+        "dankmeme.globed2/notification-panel",
         // "hjfod.quick-volume-controls/overlay",
     };
 
