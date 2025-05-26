@@ -412,7 +412,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 #undef CONTROLLER_CASE
 
 void HookedCCApplication::updateDrawNode() {
-    if (true) {
+    if (false) {
         // lol nobody uses notification node, might as well steal it
         if (!g_overlay) {
             g_overlay = cocos2d::CCDrawNode::create();
@@ -433,21 +433,24 @@ void HookedCCApplication::updateDrawNode() {
         // }
     } else {
         auto director = cocos2d::CCDirector::get();
-        if (!g_buttonOverlay) {
-            auto size = director->getWinSizeInPixels();
-            g_buttonOverlay = RenderTexture(size.width, size.height, GL_RGBA, GL_RGBA).intoManagedSprite();
-            g_buttonOverlay->sprite->setShaderProgram(cocos2d::CCShaderCache::sharedShaderCache()->programForKey("SelectedButtonShader"_spr));
-            g_buttonOverlay->sprite->setFlipY(true);
-            g_buttonOverlay->sprite->ignoreAnchorPointForPosition(true);
-            g_buttonOverlay->sprite->setZOrder(6969);
-            g_buttonOverlay->sprite->retain();
-            g_buttonOverlay->sprite->retain();
-            g_buttonOverlay->sprite->retain();
-            cocos2d::CCDirector::get()->setNotificationNode(g_buttonOverlay->sprite);
-        }
+        auto winSize = director->getWinSizeInPixels();
 
+        auto bb = cl::utils::getNodeBoundingBox(g_button);
+        int multiplier = director->getContentScaleFactor();
+
+        cocos2d::CCDirector::get()->setNotificationNode(nullptr);
+
+        g_buttonOverlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR).intoManagedSprite();
+        g_buttonOverlay->sprite->setShaderProgram(cocos2d::CCShaderCache::sharedShaderCache()->programForKey("SelectedButtonShader"_spr));
+        g_buttonOverlay->sprite->setFlipY(true);
+        g_buttonOverlay->sprite->ignoreAnchorPointForPosition(true);
+        
         if (!g_button) return;
 
+        auto origTransform = g_button->m_sTransform;
+        g_button->m_sTransform = g_button->nodeToWorldTransform();
         g_buttonOverlay->render.capture(g_button);
+        g_button->m_sTransform = origTransform;
+        cocos2d::CCDirector::get()->setNotificationNode(g_buttonOverlay->sprite);
     }
 }

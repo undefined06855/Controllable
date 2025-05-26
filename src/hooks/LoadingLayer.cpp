@@ -9,15 +9,17 @@ precision lowp float;
 varying vec4 v_fragmentColor;
 varying vec2 v_texCoord;
 uniform sampler2D CC_Texture0;
+uniform vec2 u_screenSize;
 
 void main() {
-    vec4 color = texture2D(CC_Texture0, v_texCoord) * v_fragmentColor;
-    if (color.a <= 0.1) {
-        color = vec4(1.0, 0.0, 0.0, 1.0);
-    } else {
-        color = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 col = texture2D(CC_Texture0, v_texCoord);
+
+    if (col.a == 0.0) {
+        col.rg = v_texCoord;
+        col.a = 1.0;
     }
-    gl_FragColor = color;
+
+    gl_FragColor = col;
 }
 )";
 
@@ -52,6 +54,10 @@ bool HookedLoadingLayer::init(bool p0) {
     program->addAttribute(kCCAttributeNamePosition, cocos2d::kCCVertexAttrib_Position);
     program->addAttribute(kCCAttributeNameTexCoord, cocos2d::kCCVertexAttrib_TexCoords);
     program->addAttribute(kCCAttributeNameColor, cocos2d::kCCVertexAttrib_Color);
+
+    auto size = cocos2d::CCDirector::get()->getWinSizeInPixels();
+    auto sizeUniformLoc = program->getUniformLocationForName("u_screenSize");
+    program->setUniformLocationWith2f(sizeUniformLoc, size.width, size.height);
 
     program->link();
     program->updateUniforms();
