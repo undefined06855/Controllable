@@ -1,4 +1,5 @@
 #include "CCTextInputNode.hpp"
+#include "../../globals.hpp"
 
 bool HookedCCTextInputNode::init(float p0, float p1, char const* p2, char const* p3, int p4, char const* p5) {
     if (!CCTextInputNode::init(p0, p1, p2, p3, p4, p5)) return false;
@@ -11,6 +12,20 @@ bool HookedCCTextInputNode::init(float p0, float p1, char const* p2, char const*
 }
 
 bool HookedCCTextInputNode::ccTouchBegan(cocos2d::CCTouch* p0, cocos2d::CCEvent* p1) {
-    geode::log::debug("{}", p0->getLocationInView());
+    geode::log::debug("text input touch pos: {}", p0->getLocationInView());
     return CCTextInputNode::ccTouchBegan(p0, p1);
+}
+
+void HookedCCTextInputNode::onClickTrackNode(bool selected) {
+    CCTextInputNode::onClickTrackNode(selected);
+    geode::log::debug("click track to {}", selected);
+
+    if (!selected && g_button == this) {
+        g_isEditingText = false;
+    }
+
+    if (selected) {
+        g_isEditingText = true;
+        g_button = this;
+    }
 }

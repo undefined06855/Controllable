@@ -23,7 +23,7 @@ enum class FocusInteractionType {
 };
 
 enum class FocusableNodeType {
-    Unknown, Button, TextInput
+    Unknown, Button, TextInput, DialogLayer
 };
 
 namespace cl::utils {

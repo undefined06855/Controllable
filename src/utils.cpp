@@ -68,8 +68,14 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
         }
     }
 
+    // parent is important, this is top z layer, this is first pass, we only
+    // want this dialog layer to be selectable so we only have this dialog layer
+    // to return
+    if (node->getUserObject("is-dialog-layer"_spr)) {
+        return { node };
+    }
+
     std::vector<cocos2d::CCNode*> ret = {};
-    ret.reserve(10);
 
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (
@@ -77,9 +83,13 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
             && (doOffscreenChecks ? !cl::utils::isNodeOffscreen(child) : true)
             && child->isVisible()
         ) {
+            // note: dialog layers are handled specially above
             auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(child);
             auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(child);
-            if ((asButton && asButton->isEnabled()) || asInput) {
+            if (
+                   (asButton && asButton->isEnabled())
+                || (asInput)
+            ) {
                 ret.push_back(child);
             }
         }
@@ -228,7 +238,9 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         { "GJ_playBtn2_001.png", 5 }, // play button
         { "GJ_createBtn_001.png", 5 }, // create button in creatorlayer
         { "controllerBtn_Start_001.png", 5 }, // start button
-        { "GJ_playBtn_001.png", 10 } // menulayer
+        { "GJ_playBtn_001.png", 10 }, // menulayer
+
+        { "GJ_secretLock4_001.png", 5 }, // the wraith doesnt have ids
     };
 
     static const std::unordered_map<std::string_view, int> buttonSpriteImportantness = {
@@ -264,7 +276,11 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     static const std::unordered_map<std::string_view, int> buttonIDImportantness = {
         { "level-button", 5 }, // levelselectlayer
         { "tower-button", 5 },
-        { "secret-door-button", 5 }
+        { "secret-door-button", 5 },
+
+        { "vaultkeeper-button", 5 }, // vaults
+        { "enter-btn", 5 }, // the tower
+        { "level-5001-button", 5 }, // the tower (TODO: hmm not sure)
     };
 
     for (auto button : buttons) {
@@ -521,8 +537,12 @@ cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
 }
 
 bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInteractionType interaction) {
+    // Unselect - moving off of the button (regardless of selected or not)
+    // Selected - A down on the button (should NOT activate/focus)
+    // Activate - A up on the button (should activate/focus)
+    
     if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node)) {
-        switch(interaction) {
+        switch (interaction) {
             case FocusInteractionType::Unselect:
                 cast->unselected();
                 break;
@@ -537,34 +557,50 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
         return true;
     }
 
+    // note: cctextinputnode SELECT DOES FOCUS the text input because it makes
+    // more sense to focus it on button down than button up
     if (auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(node)) {
-        switch(interaction) {
+        auto touch = new cocos2d::CCTouch;
+        auto bb = cl::utils::getNodeBoundingBox(node);
+        touch->autorelease();
+
+        switch (interaction) {
             case FocusInteractionType::Unselect: {
-                auto touch = new cocos2d::CCTouch;
-                auto bb = cl::utils::getNodeBoundingBox(node);
-                touch->autorelease();
-                touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 9999, 9999);
-                cast->ccTouchBegan(touch, nullptr);
+                touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 99999.f, 99999.f);
                 break;
             }
 
             case FocusInteractionType::Select:
             case FocusInteractionType::Activate: {
-                auto touch = new cocos2d::CCTouch;
-                auto bb = cl::utils::getNodeBoundingBox(node);
                 // TODO: check if ck pr has been put into a release
                 auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                 point = cocos2d::CCDirector::get()->convertToGL(point);
                 touch->autorelease();
                 touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);
-                cast->ccTouchBegan(touch, nullptr);
                 break;
+            }
+        }
+        
+        cast->ccTouchBegan(touch, nullptr);
+
+        return true;
+    }
+
+    // nothing happens here except on activate (button UP) idk pretty boring
+    if (auto cast = geode::cast::typeinfo_cast<DialogLayer*>(node)) {
+        switch (interaction) {
+            case FocusInteractionType::Unselect:
+            case FocusInteractionType::Select:
+                break;
+            case FocusInteractionType::Activate: {
+                cast->handleDialogTap();
             }
         }
 
         return true;
     }
     
+    // pretty sure this log will crash :fire:
     geode::log::warn("No interactions set up for node {} - attempting {}!", node, (int)interaction);
     return false;
 }
@@ -572,6 +608,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
 FocusableNodeType cl::utils::getFocusableNodeType(cocos2d::CCNode* node) {
     if (node->getUserObject("is-button"_spr)) return FocusableNodeType::Button;
     if (node->getUserObject("is-text-input"_spr)) return FocusableNodeType::TextInput;
+    if (node->getUserObject("is-dialog-layer"_spr)) return FocusableNodeType::DialogLayer;
     return FocusableNodeType::Unknown;
 }
 
@@ -585,6 +622,7 @@ bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
 bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
     if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) return true;
     if (geode::cast::typeinfo_cast<FLAlertLayer*>(child)) return true;
+    if (child->getUserObject("is-dialog-layer"_spr)) return true;
     return false;
 }
 

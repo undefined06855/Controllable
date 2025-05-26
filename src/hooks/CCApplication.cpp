@@ -345,6 +345,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
         case GamepadButton::None: break;
     }
 
+    // only use fallback if we're playing level etc
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         return;
     }
@@ -422,7 +423,7 @@ void HookedCCApplication::updateDrawNode() {
     
         g_overlay->clear();
     
-        if (g_button && g_isUsingController) {
+        if (g_button && g_isUsingController && cl::utils::getFocusableNodeType(g_button) != FocusableNodeType::DialogLayer) {
             auto rect = cl::utils::getNodeBoundingBox(g_button);
             g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
         }
