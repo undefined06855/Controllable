@@ -18,7 +18,6 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
         return;
     }
 
-    // TODO: DIalogLayer doesnt reset so focus is still on previous layer
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
 
     // force reset if the button goes offscreen

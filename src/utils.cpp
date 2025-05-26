@@ -112,6 +112,7 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
 
     auto rect = cocos2d::CCRect{ bl.x, bl.y, tr.x - bl.x, tr.y - bl.y };
 
+    // TODO: doesnt work for textinputs in vaults?
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) {
         rect.origin.y -= rect.size.height / 2.f;
     }
