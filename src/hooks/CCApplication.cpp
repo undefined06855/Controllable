@@ -70,7 +70,7 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
         // use text repeat timer for pressing buttons, but if we've just pressed
         // a button, ignore text repeat timer
-        // add setting
+        // add setting for text navigation repeat speed
         if (g_editingTextRepeatTimer > .1f) {
             g_editingTextRepeatTimer = 0.f;
 
@@ -412,6 +412,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 #undef CONTROLLER_CASE
 
 void HookedCCApplication::updateDrawNode() {
+    // add setting to use legacy drawnode stuff
     if (false) {
         // lol nobody uses notification node, might as well steal it
         if (!g_overlay) {

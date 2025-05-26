@@ -14,7 +14,7 @@ void Controller::update() {
     m_lastGamepadButton = gamepadButtonPressed();
 
     XINPUT_STATE state;
-    _XInputGetState(0, &state);
+    _XInputGetState(0, &state); // TODO: multiple players?
 
     m_state.m_buttonA = state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
     m_state.m_buttonB = state.Gamepad.wButtons & XINPUT_GAMEPAD_B;
@@ -32,7 +32,7 @@ void Controller::update() {
     m_state.m_buttonLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
     m_state.m_buttonRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
 
-    // add setting
+    // add setting for trigger deadzone
     static byte triggerDeadzone = 26;
     m_state.m_buttonZL = state.Gamepad.bLeftTrigger > triggerDeadzone;
     m_state.m_buttonZR = state.Gamepad.bRightTrigger > triggerDeadzone;
@@ -71,7 +71,7 @@ Direction Controller::directionPressed() {
     if (m_state.m_buttonLeft) return Direction::Left;
     if (m_state.m_buttonRight) return Direction::Right;
 
-    // add setting
+    // add setting for stick deadzone
     static float stickActivationDeadzone = .4f;
 
     // joystick
