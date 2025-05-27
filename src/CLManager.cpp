@@ -82,7 +82,6 @@ void cl::Manager::createShaders() {
 
     m_outlineShaderProgram->addAttribute(kCCAttributeNamePosition, cocos2d::kCCVertexAttrib_Position);
     m_outlineShaderProgram->addAttribute(kCCAttributeNameTexCoord, cocos2d::kCCVertexAttrib_TexCoords);
-    m_outlineShaderProgram->addAttribute(kCCAttributeNameColor, cocos2d::kCCVertexAttrib_Color);
 
     m_outlineShaderProgram->link();
     m_outlineShaderProgram->updateUniforms();
@@ -92,4 +91,7 @@ void cl::Manager::createShaders() {
     auto size = cocos2d::CCDirector::get()->getWinSizeInPixels();
     auto sizeUniformLoc = m_outlineShaderProgram->getUniformLocationForName("u_screenSize");
     m_outlineShaderProgram->setUniformLocationWith2f(sizeUniformLoc, size.width, size.height);
+
+    // here would traditionally be adding the shader to shader cache but it
+    // doesnt really matter for us since we're only using it in our mod
 }
