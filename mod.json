@@ -26,6 +26,10 @@
         }
     },
 
+	"dependencies": {
+		"alphalaneous.alphas_geode_utils": "v1.1.5"
+	},
+
     "settings": {
         "selection-outline-title": {
             "type": "title",
