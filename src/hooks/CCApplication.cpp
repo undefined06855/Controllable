@@ -6,7 +6,6 @@
 #include <RenderTexture.hpp>
 
 void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int player) {
-    if (!controller->m_controllerConnected) return;
     if (player != 1) return;
 
     g_controller.update();
@@ -400,44 +399,57 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 #undef CONTROLLER_CASE
 
 void HookedCCApplication::updateDrawNode() {
+    // dont draw the outline for dialoglayers
+    if (g_button && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::DialogLayer) return;
+
+    auto director = cocos2d::CCDirector::get();
+    director->setNotificationNode(nullptr);
+
+    // if not using controller, keep notification node cleared
+    if (!cl::utils::isUsingController()) return;
+
     if (cl::Manager::get().m_selectionLegacy) {
-        if (!g_overlay) {
-            g_overlay = cocos2d::CCDrawNode::create();
-            g_overlay->retain();
-            cocos2d::CCDirector::get()->setNotificationNode(g_overlay);
-        }
-    
-        g_overlay->clear();
-    
-        if (g_button && g_isUsingController && cl::utils::getFocusableNodeType(g_button) != FocusableNodeType::DialogLayer) {
-            auto rect = cl::utils::getNodeBoundingBox(g_button);
-            g_overlay->drawRect(rect, { 0, 0, 0, 0 }, 1.f, { 1, 0, 0, 1 });
-        }
-    
-        // for (auto button : cl::utils::gatherAllButtons(cocos2d::CCScene::get())) {
-        //     auto rect = cl::utils::getNodeBoundingBox(button);
-        //     g_overlay->drawRect(rect, { 0, 0, 0, 0 }, .6f, { 0, 1, 0, 1 });
-        // }
+        auto overlay = cocos2d::CCDrawNode::create();
+        overlay->clear();
+        
+        if (!g_button) return;
+        
+        auto rect = cl::utils::getNodeBoundingBox(g_button);
+        auto col = cl::Manager::get().m_selectionColor;
+        auto thickness = cl::Manager::get().m_selectionThickness / 2.f;
+        overlay->drawRect(
+            rect,
+            { 0, 0, 0, 0 },
+            thickness,
+            {
+                col.r / 255.f,
+                col.g / 255.f,
+                col.b / 255.f,
+                col.a / 255.f
+            }
+        );
+
+        overlay->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
+        director->setNotificationNode(overlay);
     } else {
-        auto director = cocos2d::CCDirector::get();
         auto winSize = director->getWinSizeInPixels();
 
         auto bb = cl::utils::getNodeBoundingBox(g_button);
         int multiplier = director->getContentScaleFactor();
 
-        cocos2d::CCDirector::get()->setNotificationNode(nullptr);
-
-        g_buttonOverlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR).intoManagedSprite();
-        g_buttonOverlay->sprite->setShaderProgram(cl::Manager::get().m_outlineShaderProgram);
-        g_buttonOverlay->sprite->setFlipY(true);
-        g_buttonOverlay->sprite->ignoreAnchorPointForPosition(true);
+        auto overlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR, GL_CLAMP_TO_EDGE).intoManagedSprite();
+        overlay->sprite->setShaderProgram(cl::Manager::get().m_outlineShaderProgram);
+        overlay->sprite->setFlipY(true);
+        overlay->sprite->ignoreAnchorPointForPosition(true);
         
         if (!g_button) return;
 
         auto origTransform = g_button->m_sTransform;
         g_button->m_sTransform = g_button->nodeToWorldTransform();
-        g_buttonOverlay->render.capture(g_button);
+        overlay->render.capture(g_button);
         g_button->m_sTransform = origTransform;
-        cocos2d::CCDirector::get()->setNotificationNode(g_buttonOverlay->sprite);
+
+        overlay->sprite->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
+        director->setNotificationNode(overlay->sprite);
     }
 }

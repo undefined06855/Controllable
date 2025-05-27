@@ -19,7 +19,7 @@ void main() {
     // doing this allows any return; statements to make the outline, and any
     // discard; statements to let the background show through
     vec4 col = u_outlineColor;
-    col += here * here.a; // TODO: is this correct? non-premultiplied alpha?
+    col += here * here.a;
     gl_FragColor = col;
 
     // discard any solid pixels, let them show through

@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include "CLManager.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
 
@@ -371,7 +372,6 @@ bool cl::utils::isPlayingLevel() {
     return true; // playlayer and literally nothing else
 }
 
-// thank you devtools
 bool cl::utils::isKeybindPopupOpen() {
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
         auto nodeName = cl::utils::getNodeClassName(child);
@@ -646,4 +646,15 @@ bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
     };
 
     return std::find(ids.begin(), ids.end(), child->getID()) != ids.end();
+}
+
+bool cl::utils::isUsingController() {
+    switch (cl::Manager::get().m_otherForceState) {
+        case ControllerDetectionType::Automatic:
+            return g_isUsingController;
+        case ControllerDetectionType::ForceNonController:
+            return false;
+        case ControllerDetectionType::ForceController:
+            return true;
+    }
 }

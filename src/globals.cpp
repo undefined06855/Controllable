@@ -1,10 +1,7 @@
 #include "globals.hpp"
 
-cocos2d::CCDrawNode* g_overlay = nullptr;
-
 // ref and not weakref because weakref's buggy and raw pointers crash sometimes
 geode::Ref<cocos2d::CCNode> g_button = nullptr;
-std::shared_ptr<RenderTexture::Sprite> g_buttonOverlay = nullptr;
 
 // set in scrollScreen, fetched in ccscheduler update
 float g_scrollNextFrame = 0.f;

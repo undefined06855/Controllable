@@ -26,7 +26,7 @@ void HookedCCScheduler::update(float dt) {
         if (!cast) {
             geode::log::warn("Was editing slider but not focused on a SliderThumb!");
             g_isAdjustingSlider = false;
-            return; // just in case
+            return;
         }
 
         auto slider = static_cast<Slider*>(cast->getParent()->getParent());

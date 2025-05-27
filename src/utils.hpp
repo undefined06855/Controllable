@@ -65,4 +65,6 @@ bool buttonIsActuallySliderThumb(cocos2d::CCNode* button);
 bool shouldTreatParentAsImportant(cocos2d::CCNode* child);
 bool shouldNotTreatAsPopup(cocos2d::CCNode* child);
 
+bool isUsingController();
+
 }
