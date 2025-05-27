@@ -497,8 +497,6 @@ cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
         "GJ_arrow_03_001.png"
     };
 
-    geode::log::debug("Searching {} buttons for a nav button...", buttons.size());
-
     for (auto button : buttons) {
         if (!geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(button)) continue;
 
@@ -605,7 +603,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
     }
     
     // pretty sure this log will crash :fire:
-    geode::log::warn("No interactions set up for node {} - attempting {}!", node, (int)interaction);
+    geode::log::warn("No interactions possible for node {} - attempting {}!", node, (int)interaction);
     return false;
 }
 
@@ -639,6 +637,7 @@ bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
         return true;
     }
 
+    // mods that have persistent layers with buttons but dont use persistent nodes
     static constexpr std::array<std::string_view, 3> ids = {
         "itzkiba.better_progression/tier-popup",
         "thesillydoggo.qolmod/QOLModButton",

@@ -24,7 +24,7 @@ void HookedCCScheduler::update(float dt) {
     if (g_isAdjustingSlider) {
         auto cast = geode::cast::typeinfo_cast<SliderThumb*>(g_button.data());
         if (!cast) {
-            geode::log::warn("was editing slider but not focused on a sliderthumb!");
+            geode::log::warn("Was editing slider but not focused on a SliderThumb!");
             g_isAdjustingSlider = false;
             return; // just in case
         }

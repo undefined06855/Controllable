@@ -2,6 +2,7 @@
 #include "../Controller.hpp"
 #include "../globals.hpp"
 #include "../utils.hpp"
+#include "../CLManager.hpp"
 #include <RenderTexture.hpp>
 
 void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int player) {
@@ -31,7 +32,7 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     if (!cl::utils::isPlayingLevel()) {
         if (!g_button && cocos2d::CCScene::get()) {
             auto buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
-            if (buttons.size() == 0) return geode::log::debug("Waiting for buttons...");
+            if (buttons.size() == 0) return;
             cl::utils::setCurrentButton(cl::utils::findMostImportantButton(buttons));
         }
     }
@@ -43,6 +44,8 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     auto buttonPressed = g_controller.gamepadButtonJustPressed();
     auto buttonReleased = g_controller.gamepadButtonJustReleased();
     auto buttonPressing = g_controller.gamepadButtonPressed();
+
+    auto& manager = cl::Manager::get();
 
     // update g_isUsingController
     if (buttonPressed != GamepadButton::None || directionPressed != Direction::None) {
@@ -64,15 +67,14 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     if (g_isEditingText) {
         auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(g_button.data());
         if (!cast) {
-            geode::log::warn("was editing text but not focused on a text input!");
+            geode::log::warn("Was editing text but not focused on a CCTextInputNode!");
             g_isEditingText = false;
-            return; // just in case
+            return;
         }
 
         // use text repeat timer for pressing buttons, but if we've just pressed
         // a button, ignore text repeat timer
-        // add setting for text navigation repeat speed
-        if (g_editingTextRepeatTimer > .1f) {
+        if (g_editingTextRepeatTimer > manager.m_navigationCaretRepeatInterval) {
             g_editingTextRepeatTimer = 0.f;
 
             // pressing - take timer into account
@@ -106,9 +108,11 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     }
 
     // scrolling
-    // add setting for reverse scroll
     if (!cl::utils::isPlayingLevel()) {
         g_scrollNextFrame = -g_controller.getRightJoystick().y;
+        if (manager.m_navigationReverseScroll) {
+            g_scrollNextFrame = -g_scrollNextFrame;
+        }
     }
 
     updateDrawNode();
@@ -117,7 +121,6 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 void HookedCCApplication::focusInDirection(Direction direction) {
     if (!g_button) return;
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
-        geode::log::debug("direction fallback");
         pressButton(cl::utils::directionToButton(direction));
         depressButton(cl::utils::directionToButton(direction));
         return;
@@ -140,7 +143,6 @@ void HookedCCApplication::focusInDirection(Direction direction) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
         auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : direction;
         if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
-            geode::log::debug("Found with {}", (int)type);
             cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             cl::utils::setCurrentButton(button);
             return;
@@ -150,7 +152,6 @@ void HookedCCApplication::focusInDirection(Direction direction) {
 
 cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons) {
     cocos2d::CCNode* closestButton = nullptr;
-    geode::log::debug("Searching {} buttons", buttons.size());
 
     auto curButtonRect = cl::utils::getNodeBoundingBox(g_button);
     cocos2d::CCRect closestButtonRect = { 0.f, 0.f, 0.f, 0.f };
@@ -312,6 +313,7 @@ void HookedCCApplication::pressButton(GamepadButton button) {
 
     if (button == GamepadButton::A) {
         if (!g_button) return;
+        // this will only select most elements but will ACTIVATE text inputs
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
     } else if (button == GamepadButton::B && !g_isAdjustingSlider && !g_isEditingText) {
         // B button simulates escape key
@@ -353,20 +355,6 @@ void HookedCCApplication::depressButton(GamepadButton button) {
     if (button == GamepadButton::A) {
         // a button activates button
         if (!g_button) return;
-        
-        // deselect slider if we are
-        if (g_isAdjustingSlider) {
-            g_isAdjustingSlider = false;
-            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
-            return;
-        }
-
-        // deselect text input if we are
-        if (g_isEditingText) {
-            g_isEditingText = false;
-            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
-            return;
-        }
 
         // select slider if we aren't and this is a slider
         if (cl::utils::buttonIsActuallySliderThumb(g_button)) {
@@ -382,8 +370,6 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Activate);
     } else if (button == GamepadButton::B) {
-        // B button simulates escape key unless on slider
-
         // deselect slider if we are
         if (g_isAdjustingSlider) {
             g_isAdjustingSlider = false;
@@ -398,6 +384,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
             return;
         }
 
+        // else simulate escape key
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::KEY_Escape, false, false);
     } else if (button == GamepadButton::L) {
         // press any left buttons onscreen
@@ -413,9 +400,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 #undef CONTROLLER_CASE
 
 void HookedCCApplication::updateDrawNode() {
-    // add setting to use legacy drawnode stuff
-    if (false) {
-        // lol nobody uses notification node, might as well steal it
+    if (cl::Manager::get().m_selectionLegacy) {
         if (!g_overlay) {
             g_overlay = cocos2d::CCDrawNode::create();
             g_overlay->retain();
@@ -443,7 +428,7 @@ void HookedCCApplication::updateDrawNode() {
         cocos2d::CCDirector::get()->setNotificationNode(nullptr);
 
         g_buttonOverlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR).intoManagedSprite();
-        g_buttonOverlay->sprite->setShaderProgram(cocos2d::CCShaderCache::sharedShaderCache()->programForKey("SelectedButtonShader"_spr));
+        g_buttonOverlay->sprite->setShaderProgram(cl::Manager::get().m_outlineShaderProgram);
         g_buttonOverlay->sprite->setFlipY(true);
         g_buttonOverlay->sprite->ignoreAnchorPointForPosition(true);
         

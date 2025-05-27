@@ -1,4 +1,5 @@
 #include "../../Controller.hpp"
+#include "../../CLManager.hpp"
 #include "xinput.hpp"
 
 Controller g_controller;
@@ -32,8 +33,8 @@ void Controller::update() {
     m_state.m_buttonLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
     m_state.m_buttonRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
 
-    // add setting for trigger deadzone
-    static byte triggerDeadzone = 26;
+    // 0 to 255
+    byte triggerDeadzone = 255 * cl::Manager::get().m_controllerTriggerDeadzone;
     m_state.m_buttonZL = state.Gamepad.bLeftTrigger > triggerDeadzone;
     m_state.m_buttonZR = state.Gamepad.bRightTrigger > triggerDeadzone;
 
@@ -71,14 +72,14 @@ Direction Controller::directionPressed() {
     if (m_state.m_buttonLeft) return Direction::Left;
     if (m_state.m_buttonRight) return Direction::Right;
 
-    // add setting for stick deadzone
-    static float stickActivationDeadzone = .4f;
+    // 0 to 1
+    float deadzone = cl::Manager::get().m_controllerTriggerDeadzone;
 
     // joystick
-    if (m_state.m_joyLeftY > stickActivationDeadzone) return Direction::Up;
-    if (m_state.m_joyLeftY < -stickActivationDeadzone) return Direction::Down;
-    if (m_state.m_joyLeftX < -stickActivationDeadzone) return Direction::Left;
-    if (m_state.m_joyLeftX > stickActivationDeadzone) return Direction::Right;
+    if (m_state.m_joyLeftY > deadzone) return Direction::Up;
+    if (m_state.m_joyLeftY < -deadzone) return Direction::Down;
+    if (m_state.m_joyLeftX < -deadzone) return Direction::Left;
+    if (m_state.m_joyLeftX > deadzone) return Direction::Right;
 
     return Direction::None;
 }

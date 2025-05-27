@@ -11,14 +11,8 @@ bool HookedCCTextInputNode::init(float p0, float p1, char const* p2, char const*
     return true;
 }
 
-bool HookedCCTextInputNode::ccTouchBegan(cocos2d::CCTouch* p0, cocos2d::CCEvent* p1) {
-    geode::log::debug("text input touch pos: {}", p0->getLocationInView());
-    return CCTextInputNode::ccTouchBegan(p0, p1);
-}
-
 void HookedCCTextInputNode::onClickTrackNode(bool selected) {
     CCTextInputNode::onClickTrackNode(selected);
-    geode::log::debug("click track to {}", selected);
 
     if (!selected && g_button == this) {
         g_isEditingText = false;

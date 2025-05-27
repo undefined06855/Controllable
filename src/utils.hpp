@@ -26,6 +26,10 @@ enum class FocusableNodeType {
     Unknown, Button, TextInput, DialogLayer
 };
 
+enum class ControllerDetectionType {
+    Automatic, ForceNonController, ForceController
+};
+
 namespace cl::utils {
 
 void clearCurrentButton();

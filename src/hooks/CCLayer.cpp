@@ -6,8 +6,6 @@
 void HookedCCLayer::onEnter() {
     CCLayer::onEnter();
 
-    geode::log::debug("{}", this);
-
     if (getParent() == cocos2d::CCScene::get() || cl::utils::shouldTreatParentAsImportant(this)) {
         if (g_button) {
             if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::TextInput) g_isEditingText = false;
@@ -23,7 +21,6 @@ void HookedCCLayer::onEnter() {
 void HookedCCLayer::onExit() {
     for (auto button : cl::utils::gatherAllButtons(this)) {
         if (g_button == button) {
-            geode::log::info("cleared current btn");
             cl::utils::clearCurrentButton();
         }
     }

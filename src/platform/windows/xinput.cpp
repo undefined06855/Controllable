@@ -9,7 +9,7 @@ $execute {
     }
 
     if (!xinput) {
-        geode::log::warn("lol no xinput");
+        geode::log::error("no xinput what the fuck did you do");
     }
 
     _XInputGetState = (XInputGetState_t)GetProcAddress(xinput, "XInputGetState");
