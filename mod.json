@@ -90,7 +90,7 @@
             "type": "int",
             "name": "Trigger Deadzone",
             "default": 30,
-            "min": 1,
+            "min": 0,
             "max": 100,
             "control": { "arrows": false }
         },
@@ -98,7 +98,7 @@
             "type": "int",
             "name": "Joystick Deadzone",
             "default": 60,
-            "min": 1,
+            "min": 0,
             "max": 100,
             "control": { "arrows": false }
         },

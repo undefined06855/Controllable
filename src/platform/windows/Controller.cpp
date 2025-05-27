@@ -74,6 +74,7 @@ Direction Controller::directionPressed() {
 
     // 0 to 1
     float deadzone = cl::Manager::get().m_controllerTriggerDeadzone;
+    // TODO: deadzone doesnt actually work its always 0.1
 
     // joystick
     if (m_state.m_joyLeftY > deadzone) return Direction::Up;
