@@ -1,6 +1,9 @@
 #include "ModSettingsPopup.hpp"
+#include "../../utils.hpp"
 
 void HookedModSettingsPopup::modify() {
+    if (!cl::utils::isUsingController()) return;
+
     if (!geode::Mod::get()->getSavedValue<bool>("shown-settings-notif", false)) {
         geode::Mod::get()->setSavedValue("shown-settings-notif", true);
 
