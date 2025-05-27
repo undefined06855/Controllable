@@ -264,9 +264,10 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
 
         // settings
         { "account", 4 },
-        { "save", 4 },
+        { "save", 4 }, // TODO: doesnt work?
         { "links", 4 },
         { "refresh login", 4 },
+        { "next", 4 },
 
         // most popups - negative button
         { "no", -5 },
@@ -570,9 +571,8 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                 touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 99999.f, 99999.f);
                 break;
             }
-
-            case FocusInteractionType::Select:
-            case FocusInteractionType::Activate: {
+            
+            case FocusInteractionType::Select: {
                 // TODO: check if ck pr has been put into a release
                 auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                 point = cocos2d::CCDirector::get()->convertToGL(point);
@@ -580,6 +580,9 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                 touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);
                 break;
             }
+
+            case FocusInteractionType::Activate:
+                break;
         }
         
         cast->ccTouchBegan(touch, nullptr);
