@@ -1,112 +1,113 @@
 {
-	"geode": "4.4.0",
-	"gd": {
-		"win": "2.2074",
-		"android": "2.2074",
-		"mac": "2.2074",
-		"ios": "2.2074"
-	},
+    "geode": "4.4.0",
+    "gd": {
+        "win": "2.2074",
+        "android": "2.2074",
+        "mac": "2.2074",
+        "ios": "2.2074"
+    },
 
-	"version": "v1.0.0",
-	"id": "undefined0.controllable",
-	"name": "Controllable",
-	"developer": "undefined0",
-	"description": "A mod that improves GD's controller support!",
-	"tags": [ "enhancement", "interface", "universal" ],
-	"early-load": true,
+    "version": "v1.0.0",
+    "id": "undefined0.controllable",
+    "name": "Controllable",
+    "developer": "undefined0",
+    "description": "A mod that improves GD's controller support!",
+    "tags": [ "enhancement", "interface", "universal" ],
+    "early-load": true,
 
-	"links": {
-		"source": "https://github.com/undefined06855/Controllable"
-	},
+    "links": {
+        "source": "https://github.com/undefined06855/Controllable"
+    },
 
-	"incompatibilities": {
-		"firee.deck": {
-			"version": "*",
-			"importance": "breaking"
-		}
-	},
+    "incompatibilities": {
+        "firee.deck": {
+            "version": "*",
+            "importance": "breaking"
+        }
+    },
 
-	"settings": {
-		"selection-outline-title": {
-			"type": "title",
-			"name": "Selection Outline"
-		},
-		"selection-outline-thickness": {
-			"type": "float",
-			"name": "Thickness",
-			"default": 3,
-			"min": 1,
-			"max": 7,
-			"control": { "arrows": false }
-		},
-		"selection-outline-color": {
-			"type": "rgba",
-			"name": "Color",
-			"default": [ 237, 59, 43, 255 ]
-		},
-		"selection-outline-include-shadow": {
-			"type": "bool",
-			"name": "Include Shadow",
-			"description": "Whether to outline button shadows as well as the button, will also make the outline closer to the anti-aliased edges of the button.",
-			"default": false,
-			"enable-if": "!selection-legacy"
-		},
-		"selection-outline-legacy": {
-			"type": "bool",
-			"name": "Legacy Selection Box",
-			"description": "Uses a full rectangle drawn around the button instead of a shader to have an outline around the button.",
-			"default": false
-		},
+    "settings": {
+        "selection-outline-title": {
+            "type": "title",
+            "name": "Selection Outline"
+        },
+        "selection-outline-thickness": {
+            "type": "float",
+            "name": "Thickness",
+            "default": 3,
+            "min": 1,
+            "max": 7,
+            "control": { "arrows": false }
+        },
+        "selection-outline-color": {
+            "type": "rgba",
+            "name": "Color",
+            "default": [ 237, 59, 43, 255 ],
+            "enable-if": "!selection-outline-is-invert"
+        },
+        "selection-outline-include-shadow": {
+            "type": "bool",
+            "name": "Include Shadow",
+            "description": "Whether to outline button shadows as well as the button, will also make the outline closer to the anti-aliased edges of the button.",
+            "default": false,
+            "enable-if": "!selection-legacy"
+        },
+        "selection-outline-legacy": {
+            "type": "bool",
+            "name": "Legacy Selection Box",
+            "description": "Uses a full rectangle drawn around the button instead of a shader to have an outline around the button.",
+            "default": false
+        },
 
-		"navigation-title": {
-			"type": "title",
-			"name": "Navigation"
-		},
-		"navigation-caret-repeat-interval": {
-			"type": "float",
-			"name": "Text Caret Repeat Speed",
-			"description": "The speed at which the text caret will move through characters in a text input when you hold left or right, in seconds. Higher means more of a delay, so slower.",
-			"default": 0.10,
-			"min": 0.01,
-			"max": 0.30,
-			"control": { "arrows": false }
-		},
-		"navigation-reverse-scroll": {
-			"type": "bool",
-			"name": "Reverse Scroll",
-			"default": false
-		},
+        "navigation-title": {
+            "type": "title",
+            "name": "Navigation"
+        },
+        "navigation-caret-repeat-interval": {
+            "type": "float",
+            "name": "Text Caret Repeat Speed",
+            "description": "The speed at which the text caret will move through characters in a text input when you hold left or right, in seconds. Higher means more of a delay, so slower.",
+            "default": 0.10,
+            "min": 0.01,
+            "max": 0.30,
+            "control": { "arrows": false }
+        },
+        "navigation-reverse-scroll": {
+            "type": "bool",
+            "name": "Reverse Scroll",
+            "default": false
+        },
 
-		"controller-title": {
-			"type": "title",
-			"name": "Controller"
-		},
-		"controller-trigger-deadzone": {
-			"type": "int",
-			"name": "Trigger Deadzone",
-			"default": 10,
-			"min": 1,
-			"max": 100,
-			"control": { "arrows": false }
-		},
-		"controller-joystick-deadzone": {
-			"type": "int",
-			"name": "Joystick Deadzone",
-			"default": 40,
-			"min": 1,
-			"max": 100,
-			"control": { "arrows": false }
-		},
+        "controller-title": {
+            "type": "title",
+            "name": "Controller"
+        },
+        "controller-trigger-deadzone": {
+            "type": "int",
+            "name": "Trigger Deadzone",
+            "default": 10,
+            "min": 1,
+            "max": 100,
+            "control": { "arrows": false }
+        },
+        "controller-joystick-deadzone": {
+            "type": "int",
+            "name": "Joystick Deadzone",
+            "default": 40,
+            "min": 1,
+            "max": 100,
+            "control": { "arrows": false }
+        },
 
-		"other-title": {
-			"type": "title",
-			"name": "Other"
-		},
-		"other-force-state": {
-			"type": "string",
-			"name": "Controller Test",
-			"default": "Automatic",
-			"one-of": [ "Automatic", "Force Not Using Controller", "Force Using Controller" ]
-		}
-	}
+        "other-title": {
+            "type": "title",
+            "name": "Other"
+        },
+        "other-force-state": {
+            "type": "string",
+            "name": "Controller Test",
+            "default": "Automatic",
+            "one-of": [ "Automatic", "Force Not Using Controller", "Force Using Controller" ]
+        }
+    }
 }
