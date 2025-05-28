@@ -140,26 +140,6 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
 cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect, TryFocusRectType type, Direction direction) {
     cocos2d::CCRect tryFocusRect = initialButtonRect;
 
-    // adjust initial pos to ensure the rect is to one side of the button
-    // +10 to ensure buttons that are on the same secondary axis or overlapping
-    // dont get selected
-    switch (direction) {
-        case Direction::Up:
-            tryFocusRect.origin.y += initialButtonRect.size.height + 10.f;
-            break;
-        case Direction::Down:
-            tryFocusRect.origin.y -= initialButtonRect.size.height + 10.f;
-            break;
-        case Direction::Left:
-            tryFocusRect.origin.x -= initialButtonRect.size.width + 10.f;
-            break;
-        case Direction::Right:
-            tryFocusRect.origin.x += initialButtonRect.size.width + 10.f;
-            break;
-        case Direction::None:
-        break;
-    }
-    
     // minimum size enforcement for the button
     if (tryFocusRect.size.height < 32.f) {
         float diff = 32.f - tryFocusRect.size.height;
@@ -172,6 +152,27 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         tryFocusRect.origin.x -= diff / 2.f;
         tryFocusRect.size.width += diff;
     }
+    
+    // adjust initial pos to ensure the rect is to one side of the button
+    // x1.2 to ensure buttons that are on the same secondary axis or overlapping
+    // dont get selected
+    switch (direction) {
+        case Direction::Up:
+            tryFocusRect.origin.y += tryFocusRect.size.height * 1.2f;
+            break;
+        case Direction::Down:
+            tryFocusRect.origin.y -= tryFocusRect.size.height * 1.2f;
+            break;
+        case Direction::Left:
+            tryFocusRect.origin.x -= tryFocusRect.size.width * 1.2f;
+            break;
+        case Direction::Right:
+            tryFocusRect.origin.x += tryFocusRect.size.width * 1.2f;
+            break;
+        case Direction::None:
+            break;
+    }
+    
 
     // figure out the largest distance the rect should be
     float distance;
@@ -221,7 +222,6 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
         case TryFocusRectType::Extreme:
             switch (direction) {
-                case Direction::None:
                 case Direction::Up:
                 case Direction::Down:
                     tryFocusRect.origin.x -= distance;
@@ -232,17 +232,53 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
                     tryFocusRect.origin.y -= distance;
                     tryFocusRect.size.height += distance * 2.f;
                     break;
+                case Direction::None:
+                    break;
             }
             break;
     }
-
 
     return tryFocusRect;
 }
 
 cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*>& buttons) {
+    // stage 1 - see if there's any buttons here that are in history
+    int mostImportantIndex = -1;
+    cocos2d::CCNode* mostImportantButton = nullptr;
+
+    // for (auto button : buttons) {
+    //     for (int i = 0; i < g_history.size(); i++) {
+    //         if (g_history[i].m_button == button) {
+    //             // yes, this button is in history
+    //             if (i > mostImportantIndex) {
+    //                 // and the index is further in than our current best match
+    //                 mostImportantButton = button;
+    //                 mostImportantIndex = i;
+    //             }
+
+    //             goto continueToNextNode;
+    //         }
+    //     }
+
+    // continueToNextNode:
+    //     (void)0;
+    // }
+
+    // if we got a best match from that...
+    if (mostImportantButton) {
+        // remove everything after this current best match index
+        g_history.erase(g_history.begin() + mostImportantIndex, g_history.end());
+
+        geode::log::debug("size {}", g_history.size());
+
+        return mostImportantButton;
+    }
+
+    // if we didnt get a best match from that...
+
+    // stage 2 - this is a new layer - look at button contents
     int mostImportantImportantness = -1;
-    cocos2d::CCNode* mostImportantButton = buttons[0]; // we need something to fall back on
+    mostImportantButton = buttons[0]; // we need something to fall back on at this point
 
     static const std::unordered_map<std::string_view, int> spriteImportantness = {
         { "GJ_arrow_01_001.png", 2 }, // back/exit buttons, really just a fallback
@@ -597,7 +633,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
             
             case FocusInteractionType::Select: {
                 // TODO: check if ck pr has been put into a release
-                auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
+                auto point = cocos2d::CCPoint{ bb.getMaxX() - 2.f, bb.getMidY() };
                 point = cocos2d::CCDirector::get()->convertToGL(point);
                 touch->autorelease();
                 touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);

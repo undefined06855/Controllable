@@ -35,3 +35,9 @@ enum class ControllerDetectionType {
 enum class SelectionOutlineType {
     Shader, Legacy, Hover
 };
+
+
+struct HistoryButton {
+    cocos2d::CCNode* m_button;
+    std::string m_layerTypeinfo;
+};

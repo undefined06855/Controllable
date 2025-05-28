@@ -117,6 +117,8 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     updateDrawNode();
 }
 
+cocos2d::CCRect lastTryFocusRect = {};
+
 void HookedCCApplication::focusInDirection(Direction direction) {
     if (!g_button) return;
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
@@ -144,6 +146,7 @@ void HookedCCApplication::focusInDirection(Direction direction) {
         if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
             cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             cl::utils::setCurrentButton(button);
+            lastTryFocusRect = tryFocusRect;
             return;
         }
     }
@@ -431,6 +434,13 @@ void HookedCCApplication::updateDrawNode() {
                 col.b / 255.f,
                 col.a / 255.f
             }
+        );
+
+        overlay->drawRect(
+            lastTryFocusRect,
+            { 0, 0, 0, 0 },
+            .5f,
+            { 0.f, 0.f, 1.f, 1.f }
         );
 
         overlay->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));

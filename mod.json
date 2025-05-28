@@ -88,7 +88,7 @@
         "controller-trigger-deadzone": {
             "type": "int",
             "name": "Trigger Deadzone",
-            "default": 30,
+            "default": 50,
             "min": 0,
             "max": 100,
             "control": { "arrows": false }
@@ -96,7 +96,7 @@
         "controller-joystick-deadzone": {
             "type": "int",
             "name": "Joystick Deadzone",
-            "default": 60,
+            "default": 70,
             "min": 0,
             "max": 100,
             "control": { "arrows": false }

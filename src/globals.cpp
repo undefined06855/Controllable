@@ -15,3 +15,5 @@ bool g_isEditingText = false;
 float g_editingTextRepeatTimer = 0.f;
 
 bool g_isUsingController = false;
+
+std::vector<HistoryButton> g_history = {};
