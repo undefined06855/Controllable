@@ -10,6 +10,7 @@ endif()
 
 project(Controllable VERSION 1.0.0)
 
+# add_definitions( -DDEBUG_SHADER_PROGRAM )
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp

@@ -9,12 +9,16 @@ void HookedModSettingsPopup::modify() {
 
         geode::Loader::get()->queueInMainThread([]{
             FLAlertLayer::create(
+                nullptr,
                 "Controllable",
                 "Note that <co>Controllable</c> does <cr>not</c> work (well) "
-                "in <cy>Geode mod setting popups</c>!"
+                "in <cy>Geode mod setting popups</c>, and you will most likely "
+                "have to edit the settings with a <cj>keyboard and mouse</c>!"
                 "\n\n"
                 "This message will only be shown <cg>once</c>.",
-                "ok"
+                "ok",
+                nullptr,
+                380.f
             )->show();
         });
     }

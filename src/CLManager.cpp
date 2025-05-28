@@ -2,9 +2,10 @@
 #include "Geode/loader/Setting.hpp"
 #include "shaders.hpp"
 
-// rest can stay uninitialised
+// rest are settings and can stay uninitialised
 cl::Manager::Manager()
-    : m_outlineShaderProgram(nullptr) {}
+    : m_outlineShaderProgram(nullptr)
+    , m_forceSelectionIncludeShadow(false) {}
 
 cl::Manager& cl::Manager::get() {
     static cl::Manager instance;
@@ -28,7 +29,14 @@ void cl::Manager::updateSettings() {
     m_selectionThickness = GET_SETTING(double, "selection-outline-thickness");
     m_selectionColor = GET_SETTING(cocos2d::ccColor4B, "selection-outline-color");
     m_selectionIncludeShadow = GET_SETTING(bool, "selection-outline-include-shadow");
-    m_selectionLegacy = GET_SETTING(bool, "selection-outline-legacy");
+
+    static const std::unordered_map<std::string_view, SelectionOutlineType> outlineMap = {
+        { "Shader", SelectionOutlineType::Shader },
+        { "Legacy", SelectionOutlineType::Legacy },
+        { "Hover", SelectionOutlineType::Hover },
+    };
+
+    m_selectionOutlineType = outlineMap.at(GET_SETTING(std::string, "selection-outline-type"));
 
     m_navigationCaretRepeatInterval = GET_SETTING(double, "navigation-caret-repeat-interval");
     m_navigationReverseScroll = GET_SETTING(bool, "navigation-reverse-scroll");
@@ -68,7 +76,7 @@ void cl::Manager::updateShaders() {
         m_selectionColor.b / 255.f,
         m_selectionColor.a / 255.f
     );
-    m_outlineShaderProgram->setUniformLocationWith1i(includeShadowLoc, m_selectionIncludeShadow); // TODO: force this on for main levels
+    m_outlineShaderProgram->setUniformLocationWith1i(includeShadowLoc, m_selectionIncludeShadow || m_forceSelectionIncludeShadow);
 }
 
 void cl::Manager::createShaders() {

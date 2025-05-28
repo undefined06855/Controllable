@@ -46,23 +46,22 @@
         "selection-outline-color": {
             "type": "rgba",
             "name": "Color",
-            "default": [ 237, 59, 43, 255 ],
-            "enable-if": "!selection-outline-is-invert"
+            "default": [ 237, 59, 43, 255 ]
+        },
+        "selection-outline-type": {
+            "type": "string",
+            "name": "Outline Type",
+            "description": "Shader uses a shader for an accurate outline, and legacy uses a full rectangle drawn around the button. Legacy will be forced on for a few special elements, such as text inputs. Hover will enlarge the button when you hover over it, as if you have pressed the button but not activated it.",
+            "default": "Shader",
+            "one-of": [ "Shader", "Legacy", "Hover" ]
         },
         "selection-outline-include-shadow": {
             "type": "bool",
-            "name": "Include Shadow",
+            "name": "Include Shadow (Shader)",
             "description": "Whether to outline button shadows as well as the button, will also make the outline closer to the anti-aliased edges of the button.",
-            "default": false,
-            "enable-if": "!selection-legacy"
-        },
-        "selection-outline-legacy": {
-            "type": "bool",
-            "name": "Legacy Selection Box",
-            "description": "Uses a full rectangle drawn around the button instead of a shader to have an outline around the button.",
             "default": false
         },
-
+        
         "navigation-title": {
             "type": "title",
             "name": "Navigation"

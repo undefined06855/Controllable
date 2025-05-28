@@ -1,10 +1,18 @@
 #include "utils.hpp"
 #include "CLManager.hpp"
+#include "enums.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
 
 void cl::utils::clearCurrentButton() {
     if (!g_button) return;
+
+    // deselect old button if we're in hover selection type
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) {
+        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
+            cast->unselected();
+        }
+    }
 
     g_button = nullptr;
 }
@@ -16,6 +24,14 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
 
     g_button = node;
 
+    // select the button if we're in hover selection type
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) {
+        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
+            cast->selected();
+        }
+    }
+
+    // start hovering button if we're pressing A
     if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
     }
@@ -334,6 +350,15 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
                 mostImportantImportantness = importantness;
                 mostImportantButton = button;
             }
+
+            // this literally will not happen i do not believe it
+            // y position tie - choose leftmost one
+            if (mostImportantBounding.getMidY() == buttonBounding.getMidY()) {
+                if (mostImportantBounding.getMidX() > buttonBounding.getMidX()) {
+                    mostImportantImportantness = importantness;
+                    mostImportantButton = button;
+                }
+            }
         }
     }
 
@@ -608,6 +633,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
 }
 
 FocusableNodeType cl::utils::getFocusableNodeType(cocos2d::CCNode* node) {
+    if (!node) return FocusableNodeType::Unknown;
     if (node->getUserObject("is-button"_spr)) return FocusableNodeType::Button;
     if (node->getUserObject("is-text-input"_spr)) return FocusableNodeType::TextInput;
     if (node->getUserObject("is-dialog-layer"_spr)) return FocusableNodeType::DialogLayer;
@@ -657,4 +683,34 @@ bool cl::utils::isUsingController() {
         case ControllerDetectionType::ForceController:
             return true;
     }
+}
+
+bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
+    if (!node) return false;
+
+    // if we're already including shadow this shouldnt matter
+    if (cl::Manager::get().m_selectionIncludeShadow) return false;
+
+    // was thinking about seeing every ccscale9sprite child of this node and
+    // checking if its transparent enough perhaps, but that is somewhat overkill
+    // when this only applies to literally this ingame
+
+    if (node->getID() == "level-button") return true;
+
+    return false;
+}
+
+bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
+    if (!node) return false;
+
+    // if we're already using legacy selection this shouldnt matter
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Legacy) return false;
+
+    // cctextinputnode's ccscale9sprite isnt connected to the actual input in
+    // any way that i can easily check so i cant put this in the force include
+    // shadow check above which would make it look nicer
+
+    if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) return true;
+
+    return false;
 }

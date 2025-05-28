@@ -13,7 +13,7 @@ public:
     float m_selectionThickness;
     cocos2d::ccColor4B m_selectionColor;
     bool m_selectionIncludeShadow;
-    bool m_selectionLegacy;
+    SelectionOutlineType m_selectionOutlineType;
 
     float m_navigationCaretRepeatInterval;
     bool m_navigationReverseScroll;
@@ -24,6 +24,7 @@ public:
     ControllerDetectionType m_otherForceState;
 
     cocos2d::CCGLProgram* m_outlineShaderProgram;
+    bool m_forceSelectionIncludeShadow;
     
     void updateSettings();
     void updateShaders();

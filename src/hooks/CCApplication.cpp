@@ -179,7 +179,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                 float closestDistance = cocos2d::CCPoint{ closestButtonRect.getMidX(), closestButtonRect.getMidY() }.getDistance(curButtonCenter);
                 if (distance < closestDistance) {
                     closestButton = button;
-                    closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                    closestButtonRect = buttonRect;
                     continue;
                 }
                 break;
@@ -191,7 +191,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                 float closestDiffY = closestButtonRect.getMinY() - curButtonRect.getMinY();
                 if (diffY < closestDiffY) {
                     closestButton = button;
-                    closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                    closestButtonRect = buttonRect;
                     continue;
                 }
                 if (diffY == closestDiffY) {
@@ -200,7 +200,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                     float closestDiffX = std::abs(closestButtonRect.getMidX() - curButtonRect.getMidX());
                     if (diffX < closestDiffX) {
                         closestButton = button;
-                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        closestButtonRect = buttonRect;
                         continue;
                     }
                 }
@@ -213,7 +213,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                 float closestDiffY = curButtonRect.getMaxY() - closestButtonRect.getMaxY();
                 if (diffY < closestDiffY) {
                     closestButton = button;
-                    closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                    closestButtonRect = buttonRect;
                     continue;
                 }
                 if (diffY == closestDiffY) {
@@ -222,7 +222,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                     float closestDiffX = std::abs(closestButtonRect.getMidX() - curButtonRect.getMidX());
                     if (diffX < closestDiffX) {
                         closestButton = button;
-                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        closestButtonRect = buttonRect;
                         continue;
                     }
                 }
@@ -235,7 +235,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                 float closestDiffX = curButtonRect.getMaxX() - closestButtonRect.getMaxX();
                 if (diffX < closestDiffX) {
                     closestButton = button;
-                    closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                    closestButtonRect = buttonRect;
                     continue;
                 }
                 if (diffX == closestDiffX) {
@@ -244,7 +244,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                     float closestDiffY = std::abs(closestButtonRect.getMidY() - curButtonRect.getMidY());
                     if (diffY < closestDiffY) {
                         closestButton = button;
-                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        closestButtonRect = buttonRect;
                         continue;
                     }
                 }
@@ -257,7 +257,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                 float closestDiffX = closestButtonRect.getMinX() - curButtonRect.getMinX();
                 if (diffX < closestDiffX) {
                     closestButton = button;
-                    closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                    closestButtonRect = buttonRect;
                     continue;
                 }
                 if (diffX == closestDiffX) {
@@ -266,7 +266,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
                     float closestDiffY = std::abs(closestButtonRect.getMidY() - curButtonRect.getMidY());
                     if (diffY < closestDiffY) {
                         closestButton = button;
-                        closestButtonRect = cl::utils::getNodeBoundingBox(closestButton);
+                        closestButtonRect = buttonRect;
                         continue;
                     }
                 }
@@ -399,16 +399,20 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 #undef CONTROLLER_CASE
 
 void HookedCCApplication::updateDrawNode() {
-    // dont draw the outline for dialoglayers
-    if (g_button && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::DialogLayer) return;
-
     auto director = cocos2d::CCDirector::get();
     director->setNotificationNode(nullptr);
 
-    // if not using controller, keep notification node cleared
+    // dont draw the outline for dialoglayers
+    if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::DialogLayer) return;
+
+    // dont draw outline if we're not using controller
     if (!cl::utils::isUsingController()) return;
 
-    if (cl::Manager::get().m_selectionLegacy) {
+    // dont draw outline if we're using hover selection type
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) return;
+
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Legacy
+     || cl::utils::shouldForceUseLegacySelection(g_button)) {
         auto overlay = cocos2d::CCDrawNode::create();
         overlay->clear();
         
@@ -433,16 +437,20 @@ void HookedCCApplication::updateDrawNode() {
         director->setNotificationNode(overlay);
     } else {
         auto winSize = director->getWinSizeInPixels();
-
+        auto& manager = cl::Manager::get();
+        
         auto bb = cl::utils::getNodeBoundingBox(g_button);
         int multiplier = director->getContentScaleFactor();
-
+        
         auto overlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR, GL_CLAMP_TO_EDGE).intoManagedSprite();
-        overlay->sprite->setShaderProgram(cl::Manager::get().m_outlineShaderProgram);
+        overlay->sprite->setShaderProgram(manager.m_outlineShaderProgram);
         overlay->sprite->setFlipY(true);
         overlay->sprite->ignoreAnchorPointForPosition(true);
         
         if (!g_button) return;
+        
+        manager.m_forceSelectionIncludeShadow = cl::utils::shouldForceIncludeShadow(g_button);
+        manager.updateShaders();
 
         auto origTransform = g_button->m_sTransform;
         g_button->m_sTransform = g_button->nodeToWorldTransform();
