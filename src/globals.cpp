@@ -16,4 +16,5 @@ float g_editingTextRepeatTimer = 0.f;
 
 bool g_isUsingController = false;
 
+// TODO: continue work on history
 std::vector<HistoryButton> g_history = {};
