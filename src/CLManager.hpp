@@ -1,6 +1,5 @@
 #pragma once
-#include "utils.hpp"
-
+#include "enums.hpp"
 namespace cl {
 
 // manages shaders and settings

@@ -1,5 +1,5 @@
 #pragma once
-#include "utils.hpp"
+#include "enums.hpp"
 
 struct ControllerState {
     bool m_buttonA, m_buttonB, m_buttonX, m_buttonY,
