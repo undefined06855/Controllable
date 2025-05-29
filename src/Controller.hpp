@@ -10,6 +10,8 @@ struct ControllerState {
           m_joyRightX, m_joyRightY;
 };
 
+// note that implementation of this is platform-specific!
+
 class Controller {
 public:
     Controller();

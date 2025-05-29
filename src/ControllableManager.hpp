@@ -1,8 +1,8 @@
 #pragma once
 #include "enums.hpp"
+
 namespace cl {
 
-// manages shaders and settings
 class Manager : public cocos2d::CCObject {
     Manager();
 public:
@@ -40,17 +40,16 @@ public:
     void createShaders();
 
     void update(float dt);
-    void updateController(float dt);
-    void actOnGlobals(float dt);
-    void updateDrawNode();
-
+    
     // direction
     void focusInDirection(Direction direction);
     cocos2d::CCNode* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons);
-
+    
     // face buttons
     void pressButton(GamepadButton button);
     void depressButton(GamepadButton button);
+
+    void updateDrawNode();
 };
 
 }

@@ -5,7 +5,7 @@
 #include "utils.hpp"
 #include <RenderTexture.hpp>
 
-// rest are settings and can stay uninitialised
+// rest of the members are settings and can stay uninitialised
 cl::Manager::Manager()
     : m_outlineShaderProgram(nullptr)
     , m_forceSelectionIncludeShadow(false)
@@ -115,20 +115,6 @@ void cl::Manager::createShaders() {
 }
 
 void cl::Manager::update(float dt) {
-    updateController(dt);
-    actOnGlobals(dt);
-}
-
-// update globals and act on them
-void cl::Manager::actOnGlobals(float dt) {
-    if (cocos2d::CCDirector::get()->getIsTransitioning()) {
-        m_transitionPercentage += dt;
-    } else {
-        m_transitionPercentage = 0.f;
-    }
-}
-
-void cl::Manager::updateController(float dt) {
     g_controller.update();
 
     if (!cocos2d::CCScene::get()) return;
@@ -136,6 +122,8 @@ void cl::Manager::updateController(float dt) {
     // should be covered by the cclayer hooks but just in case
     if (cocos2d::CCDirector::get()->getIsTransitioning()) {
         m_transitionPercentage += dt;
+    } else {
+        m_transitionPercentage = 0.f;
     }
 
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
@@ -163,8 +151,6 @@ void cl::Manager::updateController(float dt) {
     auto buttonPressed = g_controller.gamepadButtonJustPressed();
     auto buttonReleased = g_controller.gamepadButtonJustReleased();
     auto buttonPressing = g_controller.gamepadButtonPressed();
-
-    auto& manager = cl::Manager::get();
 
     // update g_isUsingController
     if (buttonPressed != GamepadButton::None || directionPressed != Direction::None) {
@@ -204,7 +190,7 @@ void cl::Manager::updateController(float dt) {
             // use text repeat timer for pressing buttons, but if we've just pressed
             // a button, ignore text repeat timer
             m_editingTextRepeatTimer += dt;
-            if (m_editingTextRepeatTimer > manager.m_navigationCaretRepeatInterval) {
+            if (m_editingTextRepeatTimer > m_navigationCaretRepeatInterval) {
                 m_editingTextRepeatTimer = 0.f;
     
                 // pressing - take timer into account
@@ -226,25 +212,12 @@ void cl::Manager::updateController(float dt) {
         }
     }
 
-    if (directionPressed != Direction::None) {
-        focusInDirection(directionPressed);
-    }
-
-    if (buttonPressed != GamepadButton::None) {
-        pressButton(buttonPressed);
-    }
-
-    if (buttonReleased != GamepadButton::None) {
-        depressButton(buttonReleased);
-    }
-
     // scrolling
     if (!cl::utils::isPlayingLevel()) {
         auto y = g_controller.getRightJoystick().y;
-        auto deadzone = cl::Manager::get().m_controllerJoystickDeadzone;
-        if (y > deadzone || y < -deadzone) {
+        if (y > m_controllerJoystickDeadzone || y < -m_controllerJoystickDeadzone) {
             float scroll = -y;
-            if (manager.m_navigationReverseScroll) {
+            if (m_navigationReverseScroll) {
                 scroll = -scroll;
             }
 
@@ -255,6 +228,19 @@ void cl::Manager::updateController(float dt) {
         } else {
             m_scrollTime = 0.f;
         }
+    }
+
+    // general direction and button inputs
+    if (directionPressed != Direction::None) {
+        focusInDirection(directionPressed);
+    }
+
+    if (buttonPressed != GamepadButton::None) {
+        pressButton(buttonPressed);
+    }
+
+    if (buttonReleased != GamepadButton::None) {
+        depressButton(buttonReleased);
     }
 
     updateDrawNode();
@@ -292,8 +278,12 @@ void cl::Manager::focusInDirection(Direction direction) {
                 .m_from = cl::utils::getNodeBoundingBox(g_button),
                 .m_to = cl::utils::getNodeBoundingBox(button)
             };
-            cl::utils::setCurrentButton(button);
             cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+            cl::utils::setCurrentButton(button);
+            // select button if we're currently holding A
+            if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
+                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+            }
             return;
         }
     }
@@ -552,8 +542,6 @@ void cl::Manager::updateDrawNode() {
     auto director = cocos2d::CCDirector::get();
     director->setNotificationNode(nullptr);
 
-    auto& manager = cl::Manager::get();
-
     // dont draw the outline for dialoglayers
     if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::DialogLayer) return;
 
@@ -561,9 +549,9 @@ void cl::Manager::updateDrawNode() {
     if (!cl::utils::isUsingController()) return;
 
     // dont draw outline if we're using hover selection type
-    if (manager.m_selectionOutlineType == SelectionOutlineType::Hover) return;
+    if (m_selectionOutlineType == SelectionOutlineType::Hover) return;
 
-    if (manager.m_selectionOutlineType == SelectionOutlineType::Legacy
+    if (m_selectionOutlineType == SelectionOutlineType::Legacy
      || cl::utils::shouldForceUseLegacySelection(g_button)) {
         auto overlay = cocos2d::CCDrawNode::create();
         overlay->clear();
@@ -571,8 +559,8 @@ void cl::Manager::updateDrawNode() {
         if (!g_button) return;
 
         auto rect = cl::utils::getNodeBoundingBox(g_button);
-        auto col = manager.m_selectionColor;
-        auto thickness = manager.m_selectionThickness / 2.f;
+        auto col = m_selectionColor;
+        auto thickness = m_selectionThickness / 2.f;
         overlay->drawRect(
             rect,
             { 0.f, 0.f, 0.f, 0.f },
@@ -593,7 +581,7 @@ void cl::Manager::updateDrawNode() {
             { TryFocusRectType::Extreme, { 1.f, 0.f, 0.f, 1.f } }
         };
 
-        if (manager.m_otherDebug) {
+        if (m_otherDebug) {
             overlay->drawRect(
                 g_debugInformation.m_tryFocusRect,
                 { 0.f, 0.f, 0.f, 0.f },
@@ -625,14 +613,14 @@ void cl::Manager::updateDrawNode() {
         int multiplier = director->getContentScaleFactor();
 
         auto overlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR, GL_CLAMP_TO_EDGE).intoManagedSprite();
-        overlay->sprite->setShaderProgram(manager.m_outlineShaderProgram);
+        overlay->sprite->setShaderProgram(m_outlineShaderProgram);
         overlay->sprite->setFlipY(true);
         overlay->sprite->ignoreAnchorPointForPosition(true);
 
         if (!g_button) return;
 
-        manager.m_forceSelectionIncludeShadow = cl::utils::shouldForceIncludeShadow(g_button);
-        manager.updateShaders();
+        m_forceSelectionIncludeShadow = cl::utils::shouldForceIncludeShadow(g_button);
+        updateShaders();
 
         auto origTransform = g_button->m_sTransform;
         g_button->m_sTransform = g_button->nodeToWorldTransform();
