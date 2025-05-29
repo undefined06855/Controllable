@@ -247,13 +247,17 @@ void cl::Manager::update(float dt) {
 }
 
 void cl::Manager::focusInDirection(Direction direction) {
-    if (!g_button) return;
-    if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
+    if (
+        cl::utils::isPlayingLevel()
+        || cl::utils::isKeybindPopupOpen()
+        || cl::utils::directionIsSecondaryJoystick(direction)
+    ) {
         pressButton(cl::utils::directionToButton(direction));
         depressButton(cl::utils::directionToButton(direction));
         return;
     }
-
+    
+    if (!g_button) return;
     if (g_isAdjustingSlider || g_isEditingText) return;
 
     // find buttons with shrunken, enlarged, further enlarged and extreme rect types
@@ -313,7 +317,7 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
         switch (direction) {
             // use distance between centre of buttons - only used when extreme
             // tryFocusRect is used
-            case Direction::None: {
+            default: {
                 auto curButtonCenter = cocos2d::CCPoint{ curButtonRect.getMidX(), curButtonRect.getMidY() };
                 float distance = cocos2d::CCPoint{ buttonRect.getMidX(), buttonRect.getMidY() }.getDistance(curButtonCenter);
                 float closestDistance = cocos2d::CCPoint{ closestButtonRect.getMidX(), closestButtonRect.getMidY() }.getDistance(curButtonCenter);
@@ -419,8 +423,9 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
 }
 
 #define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
-    case gamepadBtn: \
-        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocosBtn, press, false); \
+    case GamepadButton::gamepadBtn: \
+        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, press, false); \
+        geode::log::debug("GamepadButton::" #gamepadBtn " converted to cocos2d::enumKeyCodes::" #cocosBtn); \
         break;
 
 void cl::Manager::pressButton(GamepadButton button) {
@@ -429,21 +434,30 @@ void cl::Manager::pressButton(GamepadButton button) {
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         // forward to cckeyboarddispatcher for gd built in handling
         switch(button) {
-            CONTROLLER_CASE(GamepadButton::A, cocos2d::enumKeyCodes::CONTROLLER_A, true)
-            CONTROLLER_CASE(GamepadButton::B, cocos2d::enumKeyCodes::CONTROLLER_B, true)
-            CONTROLLER_CASE(GamepadButton::X, cocos2d::enumKeyCodes::CONTROLLER_X, true)
-            CONTROLLER_CASE(GamepadButton::Y, cocos2d::enumKeyCodes::CONTROLLER_Y, true)
-            CONTROLLER_CASE(GamepadButton::Start, cocos2d::enumKeyCodes::CONTROLLER_Start, true)
-            CONTROLLER_CASE(GamepadButton::Select, cocos2d::enumKeyCodes::CONTROLLER_Back, true)
-            CONTROLLER_CASE(GamepadButton::L, cocos2d::enumKeyCodes::CONTROLLER_LB, true)
-            CONTROLLER_CASE(GamepadButton::R, cocos2d::enumKeyCodes::CONTROLLER_RB, true)
-            CONTROLLER_CASE(GamepadButton::ZL, cocos2d::enumKeyCodes::CONTROLLER_LT, true)
-            CONTROLLER_CASE(GamepadButton::ZR, cocos2d::enumKeyCodes::CONTROLLER_RT, true)
-            // these will also treat joystick inputs as d-pad inputs but whatever
-            CONTROLLER_CASE(GamepadButton::Up, cocos2d::enumKeyCodes::CONTROLLER_Up, true)
-            CONTROLLER_CASE(GamepadButton::Down, cocos2d::enumKeyCodes::CONTROLLER_Down, true)
-            CONTROLLER_CASE(GamepadButton::Left, cocos2d::enumKeyCodes::CONTROLLER_Left, true)
-            CONTROLLER_CASE(GamepadButton::Right, cocos2d::enumKeyCodes::CONTROLLER_Right, true)
+            CONTROLLER_CASE(A, CONTROLLER_A, true)
+            CONTROLLER_CASE(B, CONTROLLER_B, true)
+            CONTROLLER_CASE(X, CONTROLLER_X, true)
+            CONTROLLER_CASE(Y, CONTROLLER_Y, true)
+            CONTROLLER_CASE(Start, CONTROLLER_Start, true)
+            CONTROLLER_CASE(Select, CONTROLLER_Back, true)
+            CONTROLLER_CASE(L, CONTROLLER_LB, true)
+            CONTROLLER_CASE(R, CONTROLLER_RB, true)
+            CONTROLLER_CASE(ZL, CONTROLLER_LT, true)
+            CONTROLLER_CASE(ZR, CONTROLLER_RT, true)
+            CONTROLLER_CASE(Up, CONTROLLER_Up, true)
+            CONTROLLER_CASE(Down, CONTROLLER_Down, true)
+            CONTROLLER_CASE(Left, CONTROLLER_Left, true)
+            CONTROLLER_CASE(Right, CONTROLLER_Right, true)
+
+            // only used in fallback
+            CONTROLLER_CASE(JoyUp, CONTROLLER_LTHUMBSTICK_UP, true)
+            CONTROLLER_CASE(JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, true)
+            CONTROLLER_CASE(JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, true)
+            CONTROLLER_CASE(JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, true)
+            CONTROLLER_CASE(SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, true)
+            CONTROLLER_CASE(SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, true)
+            CONTROLLER_CASE(SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, true)
+            CONTROLLER_CASE(SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, true)
             case GamepadButton::None: break;
         }
 
@@ -468,21 +482,30 @@ void cl::Manager::depressButton(GamepadButton button) {
     // never be released so the releasing code runs regardless of the playlayer
     // check
     switch(button) {
-        CONTROLLER_CASE(GamepadButton::A, cocos2d::enumKeyCodes::CONTROLLER_A, false)
-        CONTROLLER_CASE(GamepadButton::B, cocos2d::enumKeyCodes::CONTROLLER_B, false)
-        CONTROLLER_CASE(GamepadButton::X, cocos2d::enumKeyCodes::CONTROLLER_X, false)
-        CONTROLLER_CASE(GamepadButton::Y, cocos2d::enumKeyCodes::CONTROLLER_Y, false)
-        CONTROLLER_CASE(GamepadButton::Start, cocos2d::enumKeyCodes::CONTROLLER_Start, false)
-        CONTROLLER_CASE(GamepadButton::Select, cocos2d::enumKeyCodes::CONTROLLER_Back, false)
-        CONTROLLER_CASE(GamepadButton::L, cocos2d::enumKeyCodes::CONTROLLER_LB, false)
-        CONTROLLER_CASE(GamepadButton::R, cocos2d::enumKeyCodes::CONTROLLER_RB, false)
-        CONTROLLER_CASE(GamepadButton::ZL, cocos2d::enumKeyCodes::CONTROLLER_LT, false)
-        CONTROLLER_CASE(GamepadButton::ZR, cocos2d::enumKeyCodes::CONTROLLER_RT, false)
-        // these will also treat joystick inputs as d-pad inputs but whatever
-        CONTROLLER_CASE(GamepadButton::Up, cocos2d::enumKeyCodes::CONTROLLER_Up, false)
-        CONTROLLER_CASE(GamepadButton::Down, cocos2d::enumKeyCodes::CONTROLLER_Down, false)
-        CONTROLLER_CASE(GamepadButton::Left, cocos2d::enumKeyCodes::CONTROLLER_Left, false)
-        CONTROLLER_CASE(GamepadButton::Right, cocos2d::enumKeyCodes::CONTROLLER_Right, false)
+        CONTROLLER_CASE(A, CONTROLLER_A, false)
+        CONTROLLER_CASE(B, CONTROLLER_B, false)
+        CONTROLLER_CASE(X, CONTROLLER_X, false)
+        CONTROLLER_CASE(Y, CONTROLLER_Y, false)
+        CONTROLLER_CASE(Start, CONTROLLER_Start, false)
+        CONTROLLER_CASE(Select, CONTROLLER_Back, false)
+        CONTROLLER_CASE(L, CONTROLLER_LB, false)
+        CONTROLLER_CASE(R, CONTROLLER_RB, false)
+        CONTROLLER_CASE(ZL, CONTROLLER_LT, false)
+        CONTROLLER_CASE(ZR, CONTROLLER_RT, false)
+        CONTROLLER_CASE(Up, CONTROLLER_Up, false)
+        CONTROLLER_CASE(Down, CONTROLLER_Down, false)
+        CONTROLLER_CASE(Left, CONTROLLER_Left, false)
+        CONTROLLER_CASE(Right, CONTROLLER_Right, false)
+
+        // only used in fallback
+        CONTROLLER_CASE(JoyUp, CONTROLLER_LTHUMBSTICK_UP, false)
+        CONTROLLER_CASE(JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, false)
+        CONTROLLER_CASE(JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, false)
+        CONTROLLER_CASE(JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, false)
+        CONTROLLER_CASE(SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, false)
+        CONTROLLER_CASE(SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, false)
+        CONTROLLER_CASE(SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, false)
+        CONTROLLER_CASE(SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, false)
         case GamepadButton::None: break;
     }
 
@@ -632,7 +655,7 @@ void cl::Manager::updateDrawNode() {
     }
 
     // dangerous but should be ok
-    float fade = std::abs(2.f*m_transitionPercentage - 1.f);
+    float fade = std::abs((2.f*m_transitionPercentage) - 1.f);
     static_cast<cocos2d::CCNodeRGBA*>(director->getNotificationNode())->setOpacity(fade);
-    geode::log::debug("fade: {}", fade);
+    // geode::log::debug("fade: {}", fade);
 }

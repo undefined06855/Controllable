@@ -81,6 +81,11 @@ Direction Controller::directionPressed() {
     if (m_state.m_joyLeftX < -deadzone) return Direction::Left;
     if (m_state.m_joyLeftX > deadzone) return Direction::Right;
 
+    if (m_state.m_joyRightY > deadzone) return Direction::SecondaryUp;
+    if (m_state.m_joyRightY < -deadzone) return Direction::SecondaryDown;
+    if (m_state.m_joyRightX < -deadzone) return Direction::SecondaryLeft;
+    if (m_state.m_joyRightX > deadzone) return Direction::SecondaryRight;
+
     return Direction::None;
 }
 
@@ -95,7 +100,6 @@ GamepadButton Controller::gamepadButtonPressed() {
     if (m_state.m_buttonR) return GamepadButton::R;
     if (m_state.m_buttonZL) return GamepadButton::ZL;
     if (m_state.m_buttonZR) return GamepadButton::ZR;
-
     if (m_state.m_buttonUp) return GamepadButton::Up;
     if (m_state.m_buttonDown) return GamepadButton::Down;
     if (m_state.m_buttonLeft) return GamepadButton::Left;

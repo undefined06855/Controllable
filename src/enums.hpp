@@ -1,12 +1,22 @@
 #pragma once
 
 enum class Direction {
-    None = 0, Up, Down, Left, Right
+    None = 0,
+    Up, Down, Left, Right,
+    SecondaryUp, SecondaryDown, SecondaryLeft, SecondaryRight
 };
 
 // up, down, left, right should only be used when passing through fallback
 enum class GamepadButton {
-    None = 0, A, B, X, Y, Start, Select, L, R, ZL, ZR, Up, Down, Left, Right
+    None = 0,
+    A, B, X, Y,
+    Start, Select,
+    L, R, ZL, ZR,
+    Up, Down, Left, Right, // note: these are for the d-pad
+
+    // these are for fallback
+    JoyUp, JoyDown, JoyLeft, JoyRight,
+    SecondaryJoyUp, SecondaryJoyDown, SecondaryJoyLeft, SecondaryJoyRight
 };
 
 

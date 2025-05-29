@@ -173,7 +173,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             tryFocusRect.origin.x += tryFocusRect.size.width;
             tryFocusRect.origin.x += std::min(40.f, tryFocusRect.size.width * 0.5f);
             break;
-        case Direction::None:
+        default:
             break;
     }
 
@@ -208,7 +208,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         case Direction::Right:
             tryFocusRect.size.width += distance;
             break;
-        case Direction::None:
+        default:
             break;
     }
 
@@ -235,7 +235,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
                     tryFocusRect.origin.y -= distance;
                     tryFocusRect.size.height += distance * 2.f;
                     break;
-                case Direction::None:
+                default:
                     break;
             }
             break;
@@ -373,14 +373,41 @@ GamepadButton cl::utils::directionToButton(Direction direction) {
     switch(direction) {
         case Direction::None:
             return GamepadButton::None;
+
         case Direction::Up:
-            return GamepadButton::Up;
+            return GamepadButton::JoyUp;
         case Direction::Down:
-            return GamepadButton::Down;
+            return GamepadButton::JoyDown;
         case Direction::Left:
-            return GamepadButton::Left;
+            return GamepadButton::JoyLeft;
         case Direction::Right:
-            return GamepadButton::Right;
+            return GamepadButton::JoyRight;
+
+        case Direction::SecondaryUp:
+            return GamepadButton::SecondaryJoyUp;
+        case Direction::SecondaryDown:
+            return GamepadButton::SecondaryJoyDown;
+        case Direction::SecondaryLeft:
+            return GamepadButton::SecondaryJoyLeft;
+        case Direction::SecondaryRight:
+            return GamepadButton::SecondaryJoyRight;
+    }
+}
+
+bool cl::utils::directionIsSecondaryJoystick(Direction direction) {
+    switch(direction) {
+        case Direction::None:    
+        case Direction::Up:
+        case Direction::Down:
+        case Direction::Left:
+        case Direction::Right:
+            return false;
+
+        case Direction::SecondaryUp:
+        case Direction::SecondaryDown:
+        case Direction::SecondaryLeft:
+        case Direction::SecondaryRight:
+            return true;
     }
 }
 
