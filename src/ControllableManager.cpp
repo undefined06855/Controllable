@@ -13,8 +13,7 @@ cl::Manager::Manager()
     , m_settingsChangedThisFrame(false)
 
     , m_editingTextRepeatTimer(0.f)
-    , m_scrollTime(0.f)
-    , m_transitionPercentage(0.f) {}
+    , m_scrollTime(0.f) {}
 
 cl::Manager& cl::Manager::get() {
     static cl::Manager& instance = *new cl::Manager;
@@ -123,18 +122,11 @@ void cl::Manager::update(float dt) {
 
     if (!cocos2d::CCScene::get()) return;
 
-    // should be covered by the cclayer hooks but just in case
-    if (cocos2d::CCDirector::get()->getIsTransitioning()) {
-        m_transitionPercentage += dt;
-    } else {
-        m_transitionPercentage = 0.f;
-    }
-
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
     // does this also happen for checkboxes / any switcher with two buttons?
 
-    // force reset if the button goes offscreen
-    if (cl::utils::isNodeOffscreen(g_button)) {
+    // force reset if the button goes offscreen or we are transitioning
+    if (cl::utils::isNodeOffscreen(g_button) || cocos2d::CCDirector::get()->getIsTransitioning()) {
         cl::utils::clearCurrentButton();
     }
 
@@ -143,7 +135,10 @@ void cl::Manager::update(float dt) {
     if (!cl::utils::isPlayingLevel()) {
         if (!g_button && cocos2d::CCScene::get()) {
             auto buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
-            if (buttons.size() == 0) return;
+            if (buttons.size() == 0) {
+                updateDrawNode(); // let it clear
+                return;
+            }
             cl::utils::setCurrentButton(cl::utils::findMostImportantButton(buttons));
         }
     }
@@ -268,7 +263,7 @@ void cl::Manager::focusInDirection(GamepadDirection direction) {
         depressButton(cl::utils::directionToButton(direction));
         return;
     }
-    
+
     if (!g_button) return;
     if (g_isAdjustingSlider || g_isEditingText) return;
 
@@ -676,9 +671,4 @@ void cl::Manager::updateDrawNode() {
         overlay->sprite->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
         director->setNotificationNode(overlay->sprite);
     }
-
-    // dangerous but should be ok
-    float fade = std::abs((2.f*m_transitionPercentage) - 1.f);
-    static_cast<cocos2d::CCNodeRGBA*>(director->getNotificationNode())->setOpacity(fade);
-    // geode::log::debug("fade: {}", fade);
 }

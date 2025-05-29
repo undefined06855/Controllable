@@ -34,7 +34,6 @@ public:
 
     float m_editingTextRepeatTimer;
     float m_scrollTime;
-    float m_transitionPercentage;
 
 
     // shader + settings stuff

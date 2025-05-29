@@ -135,9 +135,15 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
 
     auto rect = cocos2d::CCRect{ bl.x, bl.y, tr.x - bl.x, tr.y - bl.y };
 
-    // TODO: doesnt work for textinputs in vaults?
+    // TODO: doesnt work for textinputs in vaults or the login screen
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) {
         rect.origin.y -= rect.size.height / 2.f;
+    }
+
+    if (node->getID() == "copy-username-button") {
+        auto newWidth = rect.size.width * 6.5f;
+        rect.origin.x -= newWidth / 2.f;
+        rect.size.width = newWidth;
     }
 
     return rect;
@@ -291,7 +297,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
 
         // settings
         { "account", 4 },
-        { "save", 4 }, // TODO: doesnt work?
+        { "save", 4 },
         { "links", 4 },
         { "refresh login", 4 },
         { "next", 4 },
@@ -309,7 +315,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
 
         { "vaultkeeper-button", 5 }, // vaults
         { "enter-btn", 5 }, // the tower
-        { "level-5001-button", 5 }, // the tower (TODO: hmm not sure)
+        { "level-5001-button", 5 }, // the tower
     };
 
     for (auto button : buttons) {
@@ -780,14 +786,21 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
 bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
     if (!node) return false;
 
-    // if we're already using legacy selection this shouldnt matter
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Legacy) return false;
+    // if we're not using shader this shouldnt matter
+    if (cl::Manager::get().m_selectionOutlineType != SelectionOutlineType::Shader) return false;
 
     // cctextinputnode's ccscale9sprite isnt connected to the actual input in
     // any way that i can easily check so i cant put this in the force include
     // shadow check above which would make it look nicer
 
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) return true;
+
+    // secret door but invisible - need to show it
+    if (node->getID() == "secret-door-button") {
+        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCNodeRGBA*>(node->getChildByID("secret-door-sprite"))) {
+            if (cast->getOpacity() == 0) return true;
+        }
+    }
 
     return false;
 }
