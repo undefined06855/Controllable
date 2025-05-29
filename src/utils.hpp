@@ -12,8 +12,9 @@ cocos2d::CCRect getNodeBoundingBox(cocos2d::CCNode* node);
 cocos2d::CCRect createTryFocusRect(cocos2d::CCRect initialButtonRect, TryFocusRectType type, Direction direction);
 cocos2d::CCNode* findMostImportantButton(std::vector<cocos2d::CCNode*>& buttons);
 
-GamepadButton directionToButton(Direction direction);
-bool directionIsSecondaryJoystick(Direction direction);
+GamepadButton directionToButton(GamepadDirection direction);
+Direction simplifyGamepadDirection(GamepadDirection direction);
+bool directionIsSecondaryJoystick(GamepadDirection direction);
 
 bool isPlayingLevel();
 bool isKeybindPopupOpen();

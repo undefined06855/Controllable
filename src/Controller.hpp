@@ -17,17 +17,17 @@ public:
     Controller();
 
     ControllerState m_state;
-    Direction m_lastDirection;
+    GamepadDirection m_lastDirection;
     GamepadButton m_lastGamepadButton;
 
     void update();
 
-    Direction directionJustPressed();
-    Direction directionJustReleased();
+    GamepadDirection directionJustPressed();
+    GamepadDirection directionJustReleased();
     GamepadButton gamepadButtonJustPressed();
     GamepadButton gamepadButtonJustReleased();
 
-    Direction directionPressed();
+    GamepadDirection directionPressed();
     GamepadButton gamepadButtonPressed();
 
     cocos2d::CCPoint getLeftJoystick();

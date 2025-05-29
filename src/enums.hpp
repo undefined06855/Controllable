@@ -3,7 +3,13 @@
 enum class Direction {
     None = 0,
     Up, Down, Left, Right,
-    SecondaryUp, SecondaryDown, SecondaryLeft, SecondaryRight
+};
+
+enum class GamepadDirection {
+    None = 0,
+    Up, Down, Left, Right,
+    JoyUp, JoyDown, JoyLeft, JoyRight,
+    SecondaryJoyUp, SecondaryJoyDown, SecondaryJoyLeft, SecondaryJoyRight
 };
 
 // up, down, left, right should only be used when passing through fallback

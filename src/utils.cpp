@@ -173,7 +173,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             tryFocusRect.origin.x += tryFocusRect.size.width;
             tryFocusRect.origin.x += std::min(40.f, tryFocusRect.size.width * 0.5f);
             break;
-        default:
+        case Direction::None:
             break;
     }
 
@@ -208,7 +208,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         case Direction::Right:
             tryFocusRect.size.width += distance;
             break;
-        default:
+        case Direction::None:
             break;
     }
 
@@ -235,7 +235,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
                     tryFocusRect.origin.y -= distance;
                     tryFocusRect.size.height += distance * 2.f;
                     break;
-                default:
+                case Direction::None:
                     break;
             }
             break;
@@ -369,44 +369,84 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     return mostImportantButton;
 }
 
-GamepadButton cl::utils::directionToButton(Direction direction) {
-    switch(direction) {
-        case Direction::None:
+GamepadButton cl::utils::directionToButton(GamepadDirection direction) {
+    switch (direction) {
+        case GamepadDirection::None:
             return GamepadButton::None;
 
-        case Direction::Up:
+        case GamepadDirection::Up:
+            return GamepadButton::Up;
+        case GamepadDirection::Down:
+            return GamepadButton::Down;
+        case GamepadDirection::Left:
+            return GamepadButton::Left;
+        case GamepadDirection::Right:
+            return GamepadButton::Right;
+
+        case GamepadDirection::JoyUp:
             return GamepadButton::JoyUp;
-        case Direction::Down:
+        case GamepadDirection::JoyDown:
             return GamepadButton::JoyDown;
-        case Direction::Left:
+        case GamepadDirection::JoyLeft:
             return GamepadButton::JoyLeft;
-        case Direction::Right:
+        case GamepadDirection::JoyRight:
             return GamepadButton::JoyRight;
 
-        case Direction::SecondaryUp:
+        case GamepadDirection::SecondaryJoyUp:
             return GamepadButton::SecondaryJoyUp;
-        case Direction::SecondaryDown:
+        case GamepadDirection::SecondaryJoyDown:
             return GamepadButton::SecondaryJoyDown;
-        case Direction::SecondaryLeft:
+        case GamepadDirection::SecondaryJoyLeft:
             return GamepadButton::SecondaryJoyLeft;
-        case Direction::SecondaryRight:
+        case GamepadDirection::SecondaryJoyRight:
             return GamepadButton::SecondaryJoyRight;
     }
 }
 
-bool cl::utils::directionIsSecondaryJoystick(Direction direction) {
-    switch(direction) {
-        case Direction::None:    
-        case Direction::Up:
-        case Direction::Down:
-        case Direction::Left:
-        case Direction::Right:
+Direction cl::utils::simplifyGamepadDirection(GamepadDirection direction) {
+    switch (direction) {
+        case GamepadDirection::None:
+            return Direction::None;
+
+        case GamepadDirection::Up:
+        case GamepadDirection::JoyUp:
+        case GamepadDirection::SecondaryJoyUp:
+            return Direction::Up;
+
+        case GamepadDirection::Down:
+        case GamepadDirection::JoyDown:
+        case GamepadDirection::SecondaryJoyDown:
+            return Direction::Down;
+
+        case GamepadDirection::Left:
+        case GamepadDirection::JoyLeft:
+        case GamepadDirection::SecondaryJoyLeft:
+            return Direction::Left;
+
+        case GamepadDirection::Right:
+        case GamepadDirection::JoyRight:
+        case GamepadDirection::SecondaryJoyRight:
+            return Direction::Right;
+    }
+}
+
+bool cl::utils::directionIsSecondaryJoystick(GamepadDirection direction) {
+    switch (direction) {
+        case GamepadDirection::None:    
+        case GamepadDirection::Up:
+        case GamepadDirection::Down:
+        case GamepadDirection::Left:
+        case GamepadDirection::Right:
+        case GamepadDirection::JoyUp:
+        case GamepadDirection::JoyDown:
+        case GamepadDirection::JoyLeft:
+        case GamepadDirection::JoyRight:
             return false;
 
-        case Direction::SecondaryUp:
-        case Direction::SecondaryDown:
-        case Direction::SecondaryLeft:
-        case Direction::SecondaryRight:
+        case GamepadDirection::SecondaryJoyUp:
+        case GamepadDirection::SecondaryJoyDown:
+        case GamepadDirection::SecondaryJoyLeft:
+        case GamepadDirection::SecondaryJoyRight:
             return true;
     }
 }

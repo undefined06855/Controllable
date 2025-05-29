@@ -153,7 +153,7 @@ void cl::Manager::update(float dt) {
     auto buttonPressing = g_controller.gamepadButtonPressed();
 
     // update g_isUsingController
-    if (buttonPressed != GamepadButton::None || directionPressed != Direction::None) {
+    if (buttonPressed != GamepadButton::None || directionPressed != GamepadDirection::None) {
         g_isUsingController = true;
     }
 
@@ -192,19 +192,23 @@ void cl::Manager::update(float dt) {
             m_editingTextRepeatTimer += dt;
             if (m_editingTextRepeatTimer > m_navigationCaretRepeatInterval) {
                 m_editingTextRepeatTimer = 0.f;
-
+                
                 // pressing - take timer into account
-                if (directionPressing == Direction::Left || buttonPressing == GamepadButton::Left) {
+                auto simpleDirection = cl::utils::simplifyGamepadDirection(directionPressing);
+
+                if (simpleDirection == Direction::Left) {
                     cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
-                } else if (directionPressing == Direction::Right || buttonPressing == GamepadButton::Right) {
+                } else if (simpleDirection == Direction::Right) {
                     cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
                 }
             } else {
                 // just pressed - ignore timer
-                if (directionPressed == Direction::Left || buttonPressed == GamepadButton::Left) {
+                auto simpleDirection = cl::utils::simplifyGamepadDirection(directionPressed);
+
+                if (simpleDirection == Direction::Left) {
                     cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
                     m_editingTextRepeatTimer = -.1f;
-                } else if (directionPressed == Direction::Right || buttonPressed == GamepadButton::Right) {
+                } else if (simpleDirection == Direction::Right) {
                     cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
                     m_editingTextRepeatTimer = -.1f;
                 }
@@ -231,7 +235,7 @@ void cl::Manager::update(float dt) {
     }
 
     // general direction and button inputs
-    if (directionPressed != Direction::None) {
+    if (directionPressed != GamepadDirection::None) {
         focusInDirection(directionPressed);
     }
 
@@ -246,7 +250,7 @@ void cl::Manager::update(float dt) {
     updateDrawNode();
 }
 
-void cl::Manager::focusInDirection(Direction direction) {
+void cl::Manager::focusInDirection(GamepadDirection direction) {
     if (
         cl::utils::isPlayingLevel()
         || cl::utils::isKeybindPopupOpen()
@@ -272,9 +276,11 @@ void cl::Manager::focusInDirection(Direction direction) {
     // false here means dont allow offscreen buttons to be focused
     std::vector<cocos2d::CCNode*> buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get(), false);
 
+    auto simpleDirection = cl::utils::simplifyGamepadDirection(direction);
+
     for (auto type : rectTypes) {
-        cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
-        auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : direction;
+        cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, simpleDirection);
+        auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : simpleDirection;
         if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
             g_debugInformation = DebugInformation{
                 .m_tryFocusRect = tryFocusRect,
@@ -317,7 +323,7 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
         switch (direction) {
             // use distance between centre of buttons - only used when extreme
             // tryFocusRect is used
-            default: {
+            case Direction::None: {
                 auto curButtonCenter = cocos2d::CCPoint{ curButtonRect.getMidX(), curButtonRect.getMidY() };
                 float distance = cocos2d::CCPoint{ buttonRect.getMidX(), buttonRect.getMidY() }.getDistance(curButtonCenter);
                 float closestDistance = cocos2d::CCPoint{ closestButtonRect.getMidX(), closestButtonRect.getMidY() }.getDistance(curButtonCenter);
@@ -433,7 +439,7 @@ void cl::Manager::pressButton(GamepadButton button) {
 
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         // forward to cckeyboarddispatcher for gd built in handling
-        switch(button) {
+        switch (button) {
             CONTROLLER_CASE(A, CONTROLLER_A, true)
             CONTROLLER_CASE(B, CONTROLLER_B, true)
             CONTROLLER_CASE(X, CONTROLLER_X, true)
@@ -481,7 +487,7 @@ void cl::Manager::depressButton(GamepadButton button) {
     // it (which is fine) - but if this had a similar condition the button would
     // never be released so the releasing code runs regardless of the playlayer
     // check
-    switch(button) {
+    switch (button) {
         CONTROLLER_CASE(A, CONTROLLER_A, false)
         CONTROLLER_CASE(B, CONTROLLER_B, false)
         CONTROLLER_CASE(X, CONTROLLER_X, false)
