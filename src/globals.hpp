@@ -15,4 +15,7 @@ extern float g_editingTextRepeatTimer;
 
 extern bool g_isUsingController;
 
+extern bool g_isTransitioning;
+extern float g_transitionPercentage;
+
 extern DebugInformation g_debugInformation;

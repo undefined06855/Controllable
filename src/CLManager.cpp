@@ -1,5 +1,6 @@
 #include "CLManager.hpp"
 #include "Geode/loader/Setting.hpp"
+#include "globals.hpp"
 #include "shaders.hpp"
 
 // rest are settings and can stay uninitialised
@@ -19,6 +20,8 @@ void cl::Manager::init() {
     });
 
     updateSettings();
+
+    cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
 }
 
 #define GET_SETTING(type, name) mod->getSettingValue<type>(name)
@@ -103,4 +106,46 @@ void cl::Manager::createShaders() {
 
     // here would traditionally be adding the shader to shader cache but it
     // doesnt really matter for us since we're only using it in our mod
+}
+
+// update globals and act on them
+void cl::Manager::update(float dt) {
+    if (g_scrollNextFrame != 0.f) {
+        auto mouseDispatcher = cocos2d::CCDirector::get()->getMouseDispatcher();
+        float scrollSpeed = 25.f * std::pow(g_scrollTime, 6.f) + 380.f;
+        mouseDispatcher->dispatchScrollMSG(g_scrollNextFrame * dt * scrollSpeed, 0.f);
+        g_scrollTime += dt * g_scrollNextFrame;
+    }
+
+    // TODO: g_scrollTime does not get reset if you switch scrolling directions
+    // mid-scroll (edit: has been minimised with deadzone but still exists)
+    if (g_scrollNextFrame == 0.f) {
+        g_scrollTime = 0.f;
+    }
+
+    if (g_isEditingText) {
+        g_editingTextRepeatTimer += dt;
+    }
+
+    if (g_isAdjustingSlider) {
+        auto cast = geode::cast::typeinfo_cast<SliderThumb*>(g_button.data());
+        if (!cast) {
+            geode::log::warn("Was editing slider but not focused on a SliderThumb!");
+            g_isAdjustingSlider = false;
+            return;
+        }
+
+        auto slider = static_cast<Slider*>(cast->getParent()->getParent());
+        float newValue = cast->getValue() + g_sliderNextFrame * dt;
+        newValue = std::max(0.f, std::min(newValue, 1.f));
+        slider->setValue(newValue);
+        slider->m_touchLogic->m_thumb->activate(); // update value
+        g_sliderNextFrame = 0.f;
+    }
+
+    if (cocos2d::CCDirector::get()->getIsTransitioning()) {
+        g_transitionPercentage += dt;
+    } else {
+        g_transitionPercentage = 0.f;
+    }
 }

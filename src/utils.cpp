@@ -154,24 +154,24 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
     }
     
     // adjust initial pos to ensure the rect is to one side of the button
-    // x1.4 to ensure buttons that are on the same secondary axis or overlapping
-    // dont get selected (maximum 50 points extra)
+    // x1.5 to ensure buttons that are on the same secondary axis or overlapping
+    // dont get selected (maximum 40 points extra)
     switch (direction) {
         case Direction::Up:
             tryFocusRect.origin.y += tryFocusRect.size.height;
-            tryFocusRect.origin.y += std::min(40.f, tryFocusRect.size.height * 0.4f);
+            tryFocusRect.origin.y += std::min(40.f, tryFocusRect.size.height * 0.5f);
             break;
         case Direction::Down:
             tryFocusRect.origin.y -= tryFocusRect.size.height;
-            tryFocusRect.origin.y -= std::min(40.f, tryFocusRect.size.height * 0.4f);
+            tryFocusRect.origin.y -= std::min(40.f, tryFocusRect.size.height * 0.5f);
             break;
         case Direction::Left:
             tryFocusRect.origin.x -= tryFocusRect.size.width;
-            tryFocusRect.origin.x -= std::min(40.f, tryFocusRect.size.width * 0.4f);
+            tryFocusRect.origin.x -= std::min(40.f, tryFocusRect.size.width * 0.5f);
             break;
         case Direction::Right:
             tryFocusRect.origin.x += tryFocusRect.size.width;
-            tryFocusRect.origin.x += std::min(40.f, tryFocusRect.size.width * 0.4f);
+            tryFocusRect.origin.x += std::min(40.f, tryFocusRect.size.width * 0.5f);
             break;
         case Direction::None:
             break;

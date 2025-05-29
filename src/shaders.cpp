@@ -1,6 +1,5 @@
 #include "shaders.hpp"
 
-#ifndef DEBUG_SHADER_PROGRAM
 const GLchar* g_outlineShaderFragment = R"(
 #ifdef GL_ES
 precision lowp float;
@@ -53,66 +52,6 @@ void main() {
     discard;
 }
 )";
-#else
-// DEBUG SHADER:
-// same as above but with every discard/return changed to one with a unique col
-const GLchar* g_outlineShaderFragment = R"(
-#ifdef GL_ES
-precision lowp float;
-#endif
-
-varying vec2 v_texCoord;
-uniform sampler2D CC_Texture0;
-
-uniform vec2 u_screenSize;
-uniform vec4 u_outlineColor;
-uniform float u_thickness;
-uniform bool u_includeShadow;
-
-void main() {
-    vec4 here = texture2D(CC_Texture0, v_texCoord);
-
-    if (u_includeShadow) {
-        if (here.a > 0.01) {
-            gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);
-            return;
-        }
-    } else {
-        if (here.a > 0.9) {
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-            return;
-        }
-    }
-
-    vec2 texelSize = (1.0 / u_screenSize) * u_thickness;
-
-    // go through surrounding pixels of this transparent pixel
-    for (float x = -1; x <= 1; x++) {
-        for (float y = -1; y <= 1; y++) {
-            if (x == 0 && y == 0) continue;
-
-            vec2 offset = vec2(x, y) * texelSize;
-            float alpha = texture2D(CC_Texture0, v_texCoord + offset).a;
-
-            // if any surrounding pixel is solid enough then make this outline
-            if (u_includeShadow) {
-                if (alpha > 0.01) {
-                    gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
-                    return;
-                }
-            } else {
-                if (alpha > 0.9) {
-                    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
-                    return;
-                }
-            }
-        }
-    }
-
-    gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-}
-)";
-#endif
 
 const GLchar* g_outlineShaderVertex = R"(
 attribute vec4 a_position;

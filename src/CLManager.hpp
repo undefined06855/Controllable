@@ -3,7 +3,7 @@
 namespace cl {
 
 // manages shaders and settings
-class Manager {
+class Manager : public cocos2d::CCObject {
     Manager();
 public:
     static Manager& get();
@@ -29,6 +29,8 @@ public:
     void updateSettings();
     void updateShaders();
     void createShaders();
+
+    void update(float dt);
 };
 
 }

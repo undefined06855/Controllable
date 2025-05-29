@@ -1,6 +1,6 @@
 #pragma once
 #include <Geode/modify/CCApplication.hpp>
-#include "../utils.hpp"
+#include "../enums.hpp"
 
 class $modify(HookedCCApplication, cocos2d::CCApplication) {
     void updateControllerKeys(CXBOXController* controller, int player);

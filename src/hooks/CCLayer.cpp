@@ -6,8 +6,6 @@ void HookedCCLayer::onEnter() {
     CCLayer::onEnter();
 
     if (getParent() == cocos2d::CCScene::get() || cl::utils::shouldTreatParentAsImportant(this)) {
-        geode::log::debug("{}", getChildrenCount());
-        
         // clear editing text or adjusting slider
         if (g_button) {
             if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::TextInput) g_isEditingText = false;

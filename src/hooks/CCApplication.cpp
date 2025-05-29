@@ -438,7 +438,7 @@ void HookedCCApplication::updateDrawNode() {
         auto thickness = manager.m_selectionThickness / 2.f;
         overlay->drawRect(
             rect,
-            { 0, 0, 0, 0 },
+            { 0.f, 0.f, 0.f, 0.f },
             thickness,
             {
                 col.r / 255.f,
@@ -448,6 +448,7 @@ void HookedCCApplication::updateDrawNode() {
             }
         );
 
+        // debug stuff
         static const std::unordered_map<TryFocusRectType, cocos2d::ccColor4F> rectColorMap = {
             { TryFocusRectType::Shrunken, { 0.f, 1.f, 0.f, 1.f } },
             { TryFocusRectType::Enlarged, { 0.f, 0.f, 1.f, 1.f } },
@@ -504,4 +505,9 @@ void HookedCCApplication::updateDrawNode() {
         overlay->sprite->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
         director->setNotificationNode(overlay->sprite);
     }
+
+    // dangerous but should be ok
+    float fade = std::abs(2.f*g_transitionPercentage - 1.f);
+    static_cast<cocos2d::CCNodeRGBA*>(director->getNotificationNode())->setOpacity(fade);
+    geode::log::debug("fade: {}", fade);
 }
