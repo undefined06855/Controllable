@@ -10,6 +10,8 @@ cl::Manager::Manager()
     : m_outlineShaderProgram(nullptr)
     , m_forceSelectionIncludeShadow(false)
 
+    , m_settingsChangedThisFrame(false)
+
     , m_editingTextRepeatTimer(0.f)
     , m_scrollTime(0.f)
     , m_transitionPercentage(0.f) {}
@@ -20,9 +22,11 @@ cl::Manager& cl::Manager::get() {
 }
 
 void cl::Manager::init() {
-    // TODO: this runs for every setting changed, so may run multiple times
     geode::listenForAllSettingChanges([this](std::shared_ptr<geode::SettingV3>){
+        if (m_settingsChangedThisFrame) return;
+
         updateSettings();
+        m_settingsChangedThisFrame = true;
     });
 
     updateSettings();
@@ -69,7 +73,6 @@ void cl::Manager::updateSettings() {
 
 void cl::Manager::updateShaders() {
     if (!m_outlineShaderProgram) {
-        // TODO: shader stuff breaks devtools!!
         createShaders();
     }
 
@@ -116,6 +119,7 @@ void cl::Manager::createShaders() {
 
 void cl::Manager::update(float dt) {
     g_controller.update();
+    m_settingsChangedThisFrame = false;
 
     if (!cocos2d::CCScene::get()) return;
 
@@ -256,6 +260,10 @@ void cl::Manager::focusInDirection(GamepadDirection direction) {
         || cl::utils::isKeybindPopupOpen()
         || cl::utils::directionIsSecondaryJoystick(direction)
     ) {
+        // not the best if people have a "hold" keybind mapped to d-pad/joystick
+        // (such as Rewind) but there's not really a nicer way to do this
+        // without treating directions as buttons and holding and releasing and
+        // all that mess
         pressButton(cl::utils::directionToButton(direction));
         depressButton(cl::utils::directionToButton(direction));
         return;
@@ -487,6 +495,8 @@ void cl::Manager::depressButton(GamepadButton button) {
     // it (which is fine) - but if this had a similar condition the button would
     // never be released so the releasing code runs regardless of the playlayer
     // check
+    // robtop does all the controller keybind stuff either on key down or in
+    // that ccapplication function i removed idk i cant be bothered to check
     switch (button) {
         CONTROLLER_CASE(A, CONTROLLER_A, false)
         CONTROLLER_CASE(B, CONTROLLER_B, false)
@@ -525,14 +535,22 @@ void cl::Manager::depressButton(GamepadButton button) {
         if (!g_button) return;
 
         // select slider if we aren't and this is a slider
+        // deselect slider if we are
         if (cl::utils::buttonIsActuallySliderThumb(g_button)) {
-            g_isAdjustingSlider = true;
+            g_isAdjustingSlider = !g_isAdjustingSlider;
+            if (!g_isAdjustingSlider) {
+                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+            }
             return;
         }
 
         // select text input if we aren't and this is a text input
+        // deselect text input if we are
         if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::TextInput) {
-            g_isEditingText = true;
+            g_isEditingText = !g_isEditingText;
+            if (!g_isEditingText) {
+                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+            }
             return;
         }
 
@@ -571,6 +589,9 @@ void cl::Manager::updateDrawNode() {
     auto director = cocos2d::CCDirector::get();
     director->setNotificationNode(nullptr);
 
+    // dont draw outline if we have no bloody button to begin with
+    if (!g_button) return;
+
     // dont draw the outline for dialoglayers
     if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::DialogLayer) return;
 
@@ -584,8 +605,6 @@ void cl::Manager::updateDrawNode() {
      || cl::utils::shouldForceUseLegacySelection(g_button)) {
         auto overlay = cocos2d::CCDrawNode::create();
         overlay->clear();
-
-        if (!g_button) return;
 
         auto rect = cl::utils::getNodeBoundingBox(g_button);
         auto col = m_selectionColor;
@@ -645,8 +664,6 @@ void cl::Manager::updateDrawNode() {
         overlay->sprite->setShaderProgram(m_outlineShaderProgram);
         overlay->sprite->setFlipY(true);
         overlay->sprite->ignoreAnchorPointForPosition(true);
-
-        if (!g_button) return;
 
         m_forceSelectionIncludeShadow = cl::utils::shouldForceIncludeShadow(g_button);
         updateShaders();

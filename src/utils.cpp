@@ -92,6 +92,12 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
         return { node };
     }
 
+    // this node we should skip offscreen checks regardless of if theyve been
+    // set or not, since this layer will most likely start offscreen
+    if (node->getUserObject("skip-offscreen-checks"_spr)) {
+        doOffscreenChecks = false;
+    }
+
     std::vector<cocos2d::CCNode*> ret = {};
 
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {

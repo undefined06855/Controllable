@@ -27,6 +27,7 @@ public:
     ControllerDetectionType m_otherForceState;
     bool m_otherDebug;
 
+    bool m_settingsChangedThisFrame;
 
     cocos2d::CCGLProgram* m_outlineShaderProgram;
     bool m_forceSelectionIncludeShadow;
