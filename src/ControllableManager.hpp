@@ -9,28 +9,48 @@ public:
     static Manager& get();
     void init();
     
+    // selection settings
     float m_selectionThickness;
     cocos2d::ccColor4B m_selectionColor;
     bool m_selectionIncludeShadow;
     SelectionOutlineType m_selectionOutlineType;
 
+    // navigation settings
     float m_navigationCaretRepeatInterval;
     bool m_navigationReverseScroll;
     
+    // controller settings
     float m_controllerTriggerDeadzone;
     float m_controllerJoystickDeadzone;
 
+    // other settings
     ControllerDetectionType m_otherForceState;
     bool m_otherDebug;
 
+    
     cocos2d::CCGLProgram* m_outlineShaderProgram;
     bool m_forceSelectionIncludeShadow;
+    
+    float m_editingTextRepeatTimer;
+    float m_scrollTime;
+    float m_transitionPercentage;
     
     void updateSettings();
     void updateShaders();
     void createShaders();
 
     void update(float dt);
+    void updateController(float dt);
+    void actOnGlobals(float dt);
+    void updateDrawNode();
+
+    // direction
+    void focusInDirection(Direction direction);
+    cocos2d::CCNode* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons);
+
+    // face buttons
+    void pressButton(GamepadButton button);
+    void depressButton(GamepadButton button);
 };
 
 }

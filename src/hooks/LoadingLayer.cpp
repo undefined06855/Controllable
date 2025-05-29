@@ -1,6 +1,6 @@
 #include "LoadingLayer.hpp"
 #include "../globals.hpp"
-#include "../CLManager.hpp"
+#include "../ControllableManager.hpp"
 
 bool HookedLoadingLayer::init(bool p0) {
     if (!LoadingLayer::init(p0)) return false;

@@ -1,5 +1,5 @@
 #include "../../Controller.hpp"
-#include "../../CLManager.hpp"
+#include "../../ControllableManager.hpp"
 #include "xinput.hpp"
 
 Controller g_controller;

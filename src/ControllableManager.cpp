@@ -1,21 +1,141 @@
-#include "CCApplication.hpp"
-#include "../Controller.hpp"
-#include "../globals.hpp"
-#include "../utils.hpp"
-#include "../CLManager.hpp"
+#include "ControllableManager.hpp"
+#include "globals.hpp"
+#include "shaders.hpp"
+#include "Controller.hpp"
+#include "utils.hpp"
 #include <RenderTexture.hpp>
 
-void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int player) {
-    if (player != 1) return;
+// rest are settings and can stay uninitialised
+cl::Manager::Manager()
+    : m_outlineShaderProgram(nullptr)
+    , m_forceSelectionIncludeShadow(false)
+    
+    , m_editingTextRepeatTimer(0.f)
+    , m_scrollTime(0.f)
+    , m_transitionPercentage(0.f) {}
 
+cl::Manager& cl::Manager::get() {
+    static cl::Manager& instance = *new cl::Manager;
+    return instance;
+}
+
+void cl::Manager::init() {
+    // TODO: this runs for every setting changed, so may run multiple times
+    geode::listenForAllSettingChanges([this](std::shared_ptr<geode::SettingV3>){
+        updateSettings();
+    });
+
+    updateSettings();
+
+    cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
+}
+
+#define GET_SETTING(type, name) mod->getSettingValue<type>(name)
+
+void cl::Manager::updateSettings() {
+    auto mod = geode::Mod::get();
+
+    m_selectionThickness = GET_SETTING(double, "selection-outline-thickness");
+    m_selectionColor = GET_SETTING(cocos2d::ccColor4B, "selection-outline-color");
+    m_selectionIncludeShadow = GET_SETTING(bool, "selection-outline-include-shadow");
+
+    static const std::unordered_map<std::string_view, SelectionOutlineType> outlineMap = {
+        { "Shader", SelectionOutlineType::Shader },
+        { "Legacy", SelectionOutlineType::Legacy },
+        { "Hover", SelectionOutlineType::Hover },
+    };
+
+    m_selectionOutlineType = outlineMap.at(GET_SETTING(std::string, "selection-outline-type"));
+
+    m_navigationCaretRepeatInterval = GET_SETTING(double, "navigation-caret-repeat-interval");
+    m_navigationReverseScroll = GET_SETTING(bool, "navigation-reverse-scroll");
+
+    m_controllerTriggerDeadzone = GET_SETTING(int64_t, "controller-trigger-deadzone") / 100.f;
+    m_controllerJoystickDeadzone = GET_SETTING(int64_t, "controller-joystick-deadzone") / 100.f;
+    
+    static const std::unordered_map<std::string_view, ControllerDetectionType> detectionMap = {
+        { "Automatic", ControllerDetectionType::Automatic },
+        { "Force Not Using Controller", ControllerDetectionType::ForceNonController },
+        { "Force Using Controller", ControllerDetectionType::ForceController },
+    };
+
+    m_otherForceState = detectionMap.at(GET_SETTING(std::string, "other-force-state"));
+    m_otherDebug = GET_SETTING(bool, "other-debug");
+
+    updateShaders();
+}
+
+#undef GET_SETTING
+
+void cl::Manager::updateShaders() {
+    if (!m_outlineShaderProgram) {
+        // TODO: shader stuff breaks devtools!!
+        createShaders();
+    }
+
+    // set uniforms that will change here
+    m_outlineShaderProgram->use();
+    auto thicknessUniformLoc = m_outlineShaderProgram->getUniformLocationForName("u_thickness");
+    auto outlineColorLoc = m_outlineShaderProgram->getUniformLocationForName("u_outlineColor");
+    auto includeShadowLoc = m_outlineShaderProgram->getUniformLocationForName("u_includeShadow");
+    m_outlineShaderProgram->setUniformLocationWith1f(thicknessUniformLoc, m_selectionThickness);
+    m_outlineShaderProgram->setUniformLocationWith4f(
+        outlineColorLoc,
+        m_selectionColor.r / 255.f,
+        m_selectionColor.g / 255.f,
+        m_selectionColor.b / 255.f,
+        m_selectionColor.a / 255.f
+    );
+    m_outlineShaderProgram->setUniformLocationWith1i(includeShadowLoc, m_selectionIncludeShadow || m_forceSelectionIncludeShadow);
+}
+
+void cl::Manager::createShaders() {
+    // please dont release this thanks
+    m_outlineShaderProgram = new cocos2d::CCGLProgram;
+    bool ret = m_outlineShaderProgram->initWithVertexShaderByteArray(g_outlineShaderVertex, g_outlineShaderFragment);
+    if (!ret) {
+        // TODO: better debugging for failed shader compilation
+        geode::log::debug("{}", (cocos2d::CCObject*)(void*)0xb00b1e5);
+    }
+
+    m_outlineShaderProgram->addAttribute(kCCAttributeNamePosition, cocos2d::kCCVertexAttrib_Position);
+    m_outlineShaderProgram->addAttribute(kCCAttributeNameTexCoord, cocos2d::kCCVertexAttrib_TexCoords);
+
+    m_outlineShaderProgram->link();
+    m_outlineShaderProgram->updateUniforms();
+    
+    // set uniforms that wont change here
+    m_outlineShaderProgram->use();
+    auto size = cocos2d::CCDirector::get()->getWinSizeInPixels();
+    auto sizeUniformLoc = m_outlineShaderProgram->getUniformLocationForName("u_screenSize");
+    m_outlineShaderProgram->setUniformLocationWith2f(sizeUniformLoc, size.width, size.height);
+
+    // here would traditionally be adding the shader to shader cache but it
+    // doesnt really matter for us since we're only using it in our mod
+}
+
+void cl::Manager::update(float dt) {
+    updateController(dt);
+    actOnGlobals(dt);
+}
+
+// update globals and act on them
+void cl::Manager::actOnGlobals(float dt) {
+    if (cocos2d::CCDirector::get()->getIsTransitioning()) {
+        m_transitionPercentage += dt;
+    } else {
+        m_transitionPercentage = 0.f;
+    }
+}
+
+void cl::Manager::updateController(float dt) {
     g_controller.update();
 
     if (!cocos2d::CCScene::get()) return;
 
     // should be covered by the cclayer hooks but just in case
     if (cocos2d::CCDirector::get()->getIsTransitioning()) {
-        cl::utils::clearCurrentButton();
-        return;
+        m_transitionPercentage += dt;
     }
 
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
@@ -53,12 +173,24 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
     // slider shenanigans
     if (g_isAdjustingSlider) {
-        g_sliderNextFrame = g_controller.getLeftJoystick().x;
+        float slide = g_controller.getLeftJoystick().x;
 
         if (buttonPressing == GamepadButton::Left) {
-            g_sliderNextFrame = -1.f;
+            slide = -1.f;
         } else if (buttonPressing == GamepadButton::Right) {
-            g_sliderNextFrame = 1.f;
+            slide = 1.f;
+        }
+
+        auto cast = geode::cast::typeinfo_cast<SliderThumb*>(g_button.data());
+        if (!cast) {
+            geode::log::warn("Was editing slider but not focused on a SliderThumb!");
+            g_isAdjustingSlider = false;
+        } else {
+            auto slider = static_cast<Slider*>(cast->getParent()->getParent());
+            float newValue = cast->getValue() + slide * dt;
+            newValue = std::max(0.f, std::min(newValue, 1.f));
+            slider->setValue(newValue);
+            slider->m_touchLogic->m_thumb->activate(); // update value
         }
     }
 
@@ -68,28 +200,28 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
         if (!cast) {
             geode::log::warn("Was editing text but not focused on a CCTextInputNode!");
             g_isEditingText = false;
-            return;
-        }
-
-        // use text repeat timer for pressing buttons, but if we've just pressed
-        // a button, ignore text repeat timer
-        if (g_editingTextRepeatTimer > manager.m_navigationCaretRepeatInterval) {
-            g_editingTextRepeatTimer = 0.f;
-
-            // pressing - take timer into account
-            if (directionPressing == Direction::Left || buttonPressing == GamepadButton::Left) {
-                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
-            } else if (directionPressing == Direction::Right || buttonPressing == GamepadButton::Right) {
-                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
-            }
         } else {
-            // just pressed - ignore timer
-            if (directionPressed == Direction::Left || buttonPressed == GamepadButton::Left) {
-                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
-                g_editingTextRepeatTimer = -.1f;
-            } else if (directionPressed == Direction::Right || buttonPressed == GamepadButton::Right) {
-                cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
-                g_editingTextRepeatTimer = -.1f;
+            // use text repeat timer for pressing buttons, but if we've just pressed
+            // a button, ignore text repeat timer
+            m_editingTextRepeatTimer += dt;
+            if (m_editingTextRepeatTimer > manager.m_navigationCaretRepeatInterval) {
+                m_editingTextRepeatTimer = 0.f;
+    
+                // pressing - take timer into account
+                if (directionPressing == Direction::Left || buttonPressing == GamepadButton::Left) {
+                    cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
+                } else if (directionPressing == Direction::Right || buttonPressing == GamepadButton::Right) {
+                    cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
+                }
+            } else {
+                // just pressed - ignore timer
+                if (directionPressed == Direction::Left || buttonPressed == GamepadButton::Left) {
+                    cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
+                    m_editingTextRepeatTimer = -.1f;
+                } else if (directionPressed == Direction::Right || buttonPressed == GamepadButton::Right) {
+                    cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Right);
+                    m_editingTextRepeatTimer = -.1f;
+                }
             }
         }
     }
@@ -110,20 +242,25 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     if (!cl::utils::isPlayingLevel()) {
         auto y = g_controller.getRightJoystick().y;
         auto deadzone = cl::Manager::get().m_controllerJoystickDeadzone;
-        if (y < deadzone && y > -deadzone) {
-            g_scrollNextFrame = 0.f;
-        } else {
-            g_scrollNextFrame = -y;
+        if (y > deadzone || y < -deadzone) {
+            float scroll = -y;
             if (manager.m_navigationReverseScroll) {
-                g_scrollNextFrame = -g_scrollNextFrame;
+                scroll = -scroll;
             }
+
+            auto mouseDispatcher = cocos2d::CCDirector::get()->getMouseDispatcher();
+            float scrollSpeed = 25.f * std::pow(m_scrollTime, 6.f) + 380.f;
+            mouseDispatcher->dispatchScrollMSG(scroll * dt * scrollSpeed, 0.f);
+            m_scrollTime += dt * scroll;
+        } else {
+            m_scrollTime = 0.f;
         }
     }
 
     updateDrawNode();
 }
 
-void HookedCCApplication::focusInDirection(Direction direction) {
+void cl::Manager::focusInDirection(Direction direction) {
     if (!g_button) return;
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         pressButton(cl::utils::directionToButton(direction));
@@ -162,7 +299,7 @@ void HookedCCApplication::focusInDirection(Direction direction) {
     }
 }
 
-cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons) {
+cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons) {
     cocos2d::CCNode* closestButton = nullptr;
 
     auto curButtonRect = cl::utils::getNodeBoundingBox(g_button);
@@ -296,7 +433,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocosBtn, press, false); \
         break;
 
-void HookedCCApplication::pressButton(GamepadButton button) {
+void cl::Manager::pressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
@@ -333,7 +470,7 @@ void HookedCCApplication::pressButton(GamepadButton button) {
     }
 }
 
-void HookedCCApplication::depressButton(GamepadButton button) {
+void cl::Manager::depressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
     // there's a chance the fallback falls back to the pause button and presses
@@ -411,7 +548,7 @@ void HookedCCApplication::depressButton(GamepadButton button) {
 
 #undef CONTROLLER_CASE
 
-void HookedCCApplication::updateDrawNode() {
+void cl::Manager::updateDrawNode() {
     auto director = cocos2d::CCDirector::get();
     director->setNotificationNode(nullptr);
 
@@ -507,7 +644,7 @@ void HookedCCApplication::updateDrawNode() {
     }
 
     // dangerous but should be ok
-    float fade = std::abs(2.f*g_transitionPercentage - 1.f);
+    float fade = std::abs(2.f*m_transitionPercentage - 1.f);
     static_cast<cocos2d::CCNodeRGBA*>(director->getNotificationNode())->setOpacity(fade);
     geode::log::debug("fade: {}", fade);
 }
