@@ -37,7 +37,9 @@ enum class SelectionOutlineType {
 };
 
 
-struct HistoryButton {
-    cocos2d::CCNode* m_button;
-    std::string m_layerTypeinfo;
+struct DebugInformation {
+    cocos2d::CCRect m_tryFocusRect;
+    TryFocusRectType m_tryFocusRectType;
+    cocos2d::CCRect m_from;
+    cocos2d::CCRect m_to;
 };

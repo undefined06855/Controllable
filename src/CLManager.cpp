@@ -51,6 +51,7 @@ void cl::Manager::updateSettings() {
     };
 
     m_otherForceState = detectionMap.at(GET_SETTING(std::string, "other-force-state"));
+    m_otherDebug = GET_SETTING(bool, "other-debug");
 
     updateShaders();
 }

@@ -15,4 +15,4 @@ extern float g_editingTextRepeatTimer;
 
 extern bool g_isUsingController;
 
-extern std::vector<HistoryButton> g_history;
+extern DebugInformation g_debugInformation;

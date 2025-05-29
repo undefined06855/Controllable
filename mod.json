@@ -111,6 +111,12 @@
             "name": "Controller Test",
             "default": "Automatic",
             "one-of": [ "Automatic", "Force Not Using Controller", "Force Using Controller" ]
+        },
+        "other-debug": {
+            "type": "bool",
+            "name": "Debug Information",
+            "description": "Add more debugging information as to how Controllable decides what button to switch to next. Only shows with the Legacy outline type.",
+            "default": false
         }
     }
 }

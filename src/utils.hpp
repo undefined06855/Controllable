@@ -6,7 +6,7 @@ namespace cl::utils {
 void clearCurrentButton();
 void setCurrentButton(cocos2d::CCNode* node);
 
-std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node);
+std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node, bool allowSkipOffscreenChecks = true);
 std::vector<cocos2d::CCNode*> gatherAllButtons(cocos2d::CCNode* node, bool important, bool doOffscreenChecks);
 cocos2d::CCRect getNodeBoundingBox(cocos2d::CCNode* node);
 cocos2d::CCRect createTryFocusRect(cocos2d::CCRect initialButtonRect, TryFocusRectType type, Direction direction);

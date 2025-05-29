@@ -8,7 +8,7 @@ void HookedCCScheduler::update(float dt) {
         auto mouseDispatcher = cocos2d::CCDirector::get()->getMouseDispatcher();
         float scrollSpeed = 25.f * std::pow(g_scrollTime, 6.f) + 380.f;
         mouseDispatcher->dispatchScrollMSG(g_scrollNextFrame * dt * scrollSpeed, 0.f);
-        g_scrollTime += dt;
+        g_scrollTime += dt * g_scrollNextFrame;
     }
 
     // TODO: g_scrollTime does not get reset if you switch scrolling directions

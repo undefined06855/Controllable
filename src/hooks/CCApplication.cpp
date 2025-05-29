@@ -19,9 +19,9 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
     }
 
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
-    
+    // does this also happen for checkboxes / any switcher with two buttons?
+
     // force reset if the button goes offscreen
-    // TODO: boomscrolllayers still break occasionally, selected button can go offscreen
     if (cl::utils::isNodeOffscreen(g_button)) {
         cl::utils::clearCurrentButton();
     }
@@ -108,16 +108,20 @@ void HookedCCApplication::updateControllerKeys(CXBOXController* controller, int 
 
     // scrolling
     if (!cl::utils::isPlayingLevel()) {
-        g_scrollNextFrame = -g_controller.getRightJoystick().y;
-        if (manager.m_navigationReverseScroll) {
-            g_scrollNextFrame = -g_scrollNextFrame;
+        auto y = g_controller.getRightJoystick().y;
+        auto deadzone = cl::Manager::get().m_controllerJoystickDeadzone;
+        if (y < deadzone && y > -deadzone) {
+            g_scrollNextFrame = 0.f;
+        } else {
+            g_scrollNextFrame = -y;
+            if (manager.m_navigationReverseScroll) {
+                g_scrollNextFrame = -g_scrollNextFrame;
+            }
         }
     }
 
     updateDrawNode();
 }
-
-cocos2d::CCRect lastTryFocusRect = {};
 
 void HookedCCApplication::focusInDirection(Direction direction) {
     if (!g_button) return;
@@ -138,15 +142,21 @@ void HookedCCApplication::focusInDirection(Direction direction) {
     };
 
     auto buttonRect = cl::utils::getNodeBoundingBox(g_button);
-    std::vector<cocos2d::CCNode*> buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
-    
+    // false here means dont allow offscreen buttons to be focused
+    std::vector<cocos2d::CCNode*> buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get(), false);
+
     for (auto type : rectTypes) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, direction);
         auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : direction;
         if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
-            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+            g_debugInformation = DebugInformation{
+                .m_tryFocusRect = tryFocusRect,
+                .m_tryFocusRectType = type,
+                .m_from = cl::utils::getNodeBoundingBox(g_button),
+                .m_to = cl::utils::getNodeBoundingBox(button)
+            };
             cl::utils::setCurrentButton(button);
-            lastTryFocusRect = tryFocusRect;
+            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             return;
         }
     }
@@ -162,7 +172,7 @@ cocos2d::CCNode* HookedCCApplication::attemptFindButton(Direction direction, coc
 
         auto buttonRect = cl::utils::getNodeBoundingBox(button);
         if (!buttonRect.intersectsRect(rect)) continue;
-        
+
         // have we found any buttons yet?
         if (!closestButton) {
             closestButton = button;
@@ -405,6 +415,8 @@ void HookedCCApplication::updateDrawNode() {
     auto director = cocos2d::CCDirector::get();
     director->setNotificationNode(nullptr);
 
+    auto& manager = cl::Manager::get();
+
     // dont draw the outline for dialoglayers
     if (cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::DialogLayer) return;
 
@@ -412,18 +424,18 @@ void HookedCCApplication::updateDrawNode() {
     if (!cl::utils::isUsingController()) return;
 
     // dont draw outline if we're using hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) return;
+    if (manager.m_selectionOutlineType == SelectionOutlineType::Hover) return;
 
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Legacy
+    if (manager.m_selectionOutlineType == SelectionOutlineType::Legacy
      || cl::utils::shouldForceUseLegacySelection(g_button)) {
         auto overlay = cocos2d::CCDrawNode::create();
         overlay->clear();
-        
+
         if (!g_button) return;
-        
+
         auto rect = cl::utils::getNodeBoundingBox(g_button);
-        auto col = cl::Manager::get().m_selectionColor;
-        auto thickness = cl::Manager::get().m_selectionThickness / 2.f;
+        auto col = manager.m_selectionColor;
+        auto thickness = manager.m_selectionThickness / 2.f;
         overlay->drawRect(
             rect,
             { 0, 0, 0, 0 },
@@ -436,29 +448,51 @@ void HookedCCApplication::updateDrawNode() {
             }
         );
 
-        overlay->drawRect(
-            lastTryFocusRect,
-            { 0, 0, 0, 0 },
-            .5f,
-            { 0.f, 0.f, 1.f, 1.f }
-        );
+        static const std::unordered_map<TryFocusRectType, cocos2d::ccColor4F> rectColorMap = {
+            { TryFocusRectType::Shrunken, { 0.f, 1.f, 0.f, 1.f } },
+            { TryFocusRectType::Enlarged, { 0.f, 0.f, 1.f, 1.f } },
+            { TryFocusRectType::FurtherEnlarged, { 1.f, .5f, 0.f, 1.f } },
+            { TryFocusRectType::Extreme, { 1.f, 0.f, 0.f, 1.f } }
+        };
+
+        if (manager.m_otherDebug) {
+            overlay->drawRect(
+                g_debugInformation.m_tryFocusRect,
+                { 0.f, 0.f, 0.f, 0.f },
+                .4f,
+                rectColorMap.at(g_debugInformation.m_tryFocusRectType)
+            );
+    
+            overlay->drawRect(
+                g_debugInformation.m_from,
+                { 0.f, 0.f, 0.f, 0.f },
+                .3f,
+                { 1.f, 0.f, 1.f, 1.f }
+            );
+    
+            overlay->drawRect(
+                g_debugInformation.m_to,
+                { 0.f, 0.f, 0.f, 0.f },
+                .3f,
+                { .5f, .0f, .5f, 1.f }
+            );
+        }
 
         overlay->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
         director->setNotificationNode(overlay);
     } else {
         auto winSize = director->getWinSizeInPixels();
-        auto& manager = cl::Manager::get();
-        
+
         auto bb = cl::utils::getNodeBoundingBox(g_button);
         int multiplier = director->getContentScaleFactor();
-        
+
         auto overlay = RenderTexture(winSize.width, winSize.height, GL_RGBA, GL_RGBA, GL_LINEAR, GL_CLAMP_TO_EDGE).intoManagedSprite();
         overlay->sprite->setShaderProgram(manager.m_outlineShaderProgram);
         overlay->sprite->setFlipY(true);
         overlay->sprite->ignoreAnchorPointForPosition(true);
-        
+
         if (!g_button) return;
-        
+
         manager.m_forceSelectionIncludeShadow = cl::utils::shouldForceIncludeShadow(g_button);
         manager.updateShaders();
 

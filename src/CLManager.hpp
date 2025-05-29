@@ -21,6 +21,7 @@ public:
     float m_controllerJoystickDeadzone;
 
     ControllerDetectionType m_otherForceState;
+    bool m_otherDebug;
 
     cocos2d::CCGLProgram* m_outlineShaderProgram;
     bool m_forceSelectionIncludeShadow;
