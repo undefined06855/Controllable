@@ -9,7 +9,7 @@
 cl::Manager::Manager()
     : m_outlineShaderProgram(nullptr)
     , m_forceSelectionIncludeShadow(false)
-    
+
     , m_editingTextRepeatTimer(0.f)
     , m_scrollTime(0.f)
     , m_transitionPercentage(0.f) {}
@@ -52,7 +52,7 @@ void cl::Manager::updateSettings() {
 
     m_controllerTriggerDeadzone = GET_SETTING(int64_t, "controller-trigger-deadzone") / 100.f;
     m_controllerJoystickDeadzone = GET_SETTING(int64_t, "controller-joystick-deadzone") / 100.f;
-    
+
     static const std::unordered_map<std::string_view, ControllerDetectionType> detectionMap = {
         { "Automatic", ControllerDetectionType::Automatic },
         { "Force Not Using Controller", ControllerDetectionType::ForceNonController },
@@ -103,7 +103,7 @@ void cl::Manager::createShaders() {
 
     m_outlineShaderProgram->link();
     m_outlineShaderProgram->updateUniforms();
-    
+
     // set uniforms that wont change here
     m_outlineShaderProgram->use();
     auto size = cocos2d::CCDirector::get()->getWinSizeInPixels();
@@ -192,7 +192,7 @@ void cl::Manager::update(float dt) {
             m_editingTextRepeatTimer += dt;
             if (m_editingTextRepeatTimer > m_navigationCaretRepeatInterval) {
                 m_editingTextRepeatTimer = 0.f;
-    
+
                 // pressing - take timer into account
                 if (directionPressing == Direction::Left || buttonPressing == GamepadButton::Left) {
                     cast->onTextFieldInsertText(nullptr, "", 0, cocos2d::enumKeyCodes::KEY_Left);
@@ -588,14 +588,14 @@ void cl::Manager::updateDrawNode() {
                 .4f,
                 rectColorMap.at(g_debugInformation.m_tryFocusRectType)
             );
-    
+
             overlay->drawRect(
                 g_debugInformation.m_from,
                 { 0.f, 0.f, 0.f, 0.f },
                 .3f,
                 { 1.f, 0.f, 1.f, 1.f }
             );
-    
+
             overlay->drawRect(
                 g_debugInformation.m_to,
                 { 0.f, 0.f, 0.f, 0.f },

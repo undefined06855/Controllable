@@ -152,7 +152,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         tryFocusRect.origin.x -= diff / 2.f;
         tryFocusRect.size.width += diff;
     }
-    
+
     // adjust initial pos to ensure the rect is to one side of the button
     // x1.5 to ensure buttons that are on the same secondary axis or overlapping
     // dont get selected (maximum 40 points extra)
@@ -176,7 +176,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         case Direction::None:
             break;
     }
-    
+
     // figure out the largest distance the rect should be
     float distance;
     switch (type) {
@@ -387,12 +387,12 @@ GamepadButton cl::utils::directionToButton(Direction direction) {
 bool cl::utils::isPlayingLevel() {
     if (!GJBaseGameLayer::get()) return false; // no playlayer
     if (LevelEditorLayer::get()) return true; // leveleditorlayer
-    
+
     // check if playlayer has a popup-like class
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(GJBaseGameLayer::get()->getChildren())) {
         if (cl::utils::shouldTreatParentAsImportant(child)) return false;
     }
-    
+
     // playlayer and something else - see if any other children have >1 child
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
         if (child != GJBaseGameLayer::get() && !cl::utils::shouldNotTreatAsPopup(child)) return false;
@@ -569,7 +569,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
     // Unselect - moving off of the button (regardless of selected or not)
     // Selected - A down on the button (should NOT activate/focus)
     // Activate - A up on the button (should activate/focus)
-    
+
     if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node)) {
         switch (interaction) {
             case FocusInteractionType::Unselect:
@@ -630,7 +630,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
 
         return true;
     }
-    
+
     // pretty sure this log will crash :fire:
     geode::log::warn("No interactions possible for node {} - attempting {}!", node, (int)interaction);
     return false;

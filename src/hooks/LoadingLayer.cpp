@@ -9,6 +9,6 @@ bool HookedLoadingLayer::init(bool p0) {
 
     // will most likely instantly be overridden by the cceglview hooks but eh
     g_isUsingController = PlatformToolbox::isControllerConnected();
-    
+
     return true;
 }
