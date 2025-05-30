@@ -7,10 +7,11 @@ Controller g_controller;
 Controller::Controller()
     : m_state({})
     , m_lastDirection(GamepadDirection::None)
-    , m_lastGamepadButton(GamepadButton::None) {}
+    , m_lastGamepadButton(GamepadButton::None)
+    , m_vibrationTime(0.f) {}
 
 // should be called once all input processing this frame is done
-void Controller::update() {
+void Controller::update(float dt) {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
 
@@ -42,6 +43,17 @@ void Controller::update() {
     m_state.m_joyLeftY = state.Gamepad.sThumbLY / 32767.f;
     m_state.m_joyRightX = state.Gamepad.sThumbRX / 32767.f;
     m_state.m_joyRightY = state.Gamepad.sThumbRY / 32767.f;
+
+    m_vibrationTime -= dt;
+    if (m_vibrationTime < 0.f) {
+        m_vibrationTime = 0.f;
+        XINPUT_VIBRATION vibration = {
+            .wLeftMotorSpeed = 0,
+            .wRightMotorSpeed = 0,
+        };
+
+        _XInputSetState(0, &vibration);
+    }
 }
 
 GamepadDirection Controller::directionJustPressed() {
@@ -114,4 +126,15 @@ cocos2d::CCPoint Controller::getLeftJoystick() {
 
 cocos2d::CCPoint Controller::getRightJoystick() {
     return { m_state.m_joyRightX, m_state.m_joyRightY };
+}
+
+void Controller::vibrate(float duration, float left, float right) {
+    m_vibrationTime = duration;
+
+    XINPUT_VIBRATION vibration = {
+        .wLeftMotorSpeed = static_cast<unsigned short>(left * 65535),
+        .wRightMotorSpeed = static_cast<unsigned short>(right * 65535),
+    };
+
+    _XInputSetState(0, &vibration);
 }

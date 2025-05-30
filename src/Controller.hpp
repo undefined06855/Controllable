@@ -19,8 +19,9 @@ public:
     ControllerState m_state;
     GamepadDirection m_lastDirection;
     GamepadButton m_lastGamepadButton;
+    float m_vibrationTime;
 
-    void update();
+    void update(float dt);
 
     GamepadDirection directionJustPressed();
     GamepadDirection directionJustReleased();
@@ -32,5 +33,7 @@ public:
 
     cocos2d::CCPoint getLeftJoystick();
     cocos2d::CCPoint getRightJoystick();
+
+    void vibrate(float duration, float left, float right);
 };
 extern Controller g_controller;

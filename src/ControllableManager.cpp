@@ -119,7 +119,7 @@ void cl::Manager::createShaders() {
 }
 
 void cl::Manager::update(float dt) {
-    g_controller.update();
+    g_controller.update(dt);
     m_settingsChangedThisFrame = false;
 
     if (!cocos2d::CCScene::get()) return;
