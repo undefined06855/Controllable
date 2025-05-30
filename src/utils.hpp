@@ -43,4 +43,6 @@ bool isUsingController();
 bool shouldForceIncludeShadow(cocos2d::CCNode* node);
 bool shouldForceUseLegacySelection(cocos2d::CCNode* node);
 
+bool textInputIsFromGeode(cocos2d::CCNode* node);
+
 }

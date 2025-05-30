@@ -99,6 +99,7 @@ void cl::Manager::createShaders() {
     if (!ret) {
         // geode::log::debug("{}", (cocos2d::CCObject*)(void*)0xb00b1e5);
         m_failedToLoadShader = true;
+        return;
     }
 
     m_outlineShaderProgram->addAttribute(kCCAttributeNamePosition, cocos2d::kCCVertexAttrib_Position);
@@ -236,6 +237,7 @@ void cl::Manager::update(float dt) {
     }
 
     // general direction and button inputs
+    // these should be called while in a level to allow them to fallthrough
     if (directionPressed != GamepadDirection::None) {
         focusInDirection(directionPressed);
     }
@@ -285,11 +287,11 @@ void cl::Manager::focusInDirection(GamepadDirection direction) {
 
     for (auto type : rectTypes) {
         cocos2d::CCRect tryFocusRect = cl::utils::createTryFocusRect(buttonRect, type, simpleDirection);
-        auto actualDirection = type == TryFocusRectType::Extreme ? Direction::None : simpleDirection;
-        if (auto button = attemptFindButton(actualDirection, tryFocusRect, buttons)) {
+        auto findDirection = type == TryFocusRectType::Extreme ? Direction::None : simpleDirection;
+        if (auto button = attemptFindButton(findDirection, tryFocusRect, buttons)) {
             g_debugInformation = DebugInformation{
-                .m_tryFocusRect = tryFocusRect,
                 .m_tryFocusRectType = type,
+                .m_tryFocusRectDirection = simpleDirection,
                 .m_from = cl::utils::getNodeBoundingBox(g_button),
                 .m_to = cl::utils::getNodeBoundingBox(button)
             };
@@ -436,7 +438,6 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
 #define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
     case GamepadButton::gamepadBtn: \
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, press, false); \
-        geode::log::debug("GamepadButton::" #gamepadBtn " converted to cocos2d::enumKeyCodes::" #cocosBtn); \
         break;
 
 void cl::Manager::pressButton(GamepadButton button) {
@@ -477,7 +478,7 @@ void cl::Manager::pressButton(GamepadButton button) {
 
     if (button == GamepadButton::A) {
         if (!g_button) return;
-        // this will only select most elements but will ACTIVATE text inputs
+        // this will only select most elements
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
     } else if (button == GamepadButton::B && !g_isAdjustingSlider && !g_isEditingText) {
         // B button simulates escape key
@@ -537,8 +538,8 @@ void cl::Manager::depressButton(GamepadButton button) {
             g_isAdjustingSlider = !g_isAdjustingSlider;
             if (!g_isAdjustingSlider) {
                 cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+                return;
             }
-            return;
         }
 
         // select text input if we aren't and this is a text input
@@ -547,8 +548,8 @@ void cl::Manager::depressButton(GamepadButton button) {
             g_isEditingText = !g_isEditingText;
             if (!g_isEditingText) {
                 cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+                return;
             }
-            return;
         }
 
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Activate);
@@ -605,7 +606,7 @@ void cl::Manager::updateDrawNode() {
 
         auto rect = cl::utils::getNodeBoundingBox(g_button);
         auto col = m_selectionColor;
-        auto thickness = m_selectionThickness / 2.f;
+        auto thickness = m_selectionThickness / 4.f;
         overlay->drawRect(
             rect,
             { 0.f, 0.f, 0.f, 0.f },
@@ -627,10 +628,16 @@ void cl::Manager::updateDrawNode() {
         };
 
         if (m_otherDebug) {
+            auto fillCol = rectColorMap.at(g_debugInformation.m_tryFocusRectType);
+            fillCol.a = .1f;
             overlay->drawRect(
-                g_debugInformation.m_tryFocusRect,
-                { 0.f, 0.f, 0.f, 0.f },
-                .4f,
+                cl::utils::createTryFocusRect(
+                    g_debugInformation.m_from,
+                    g_debugInformation.m_tryFocusRectType,
+                    g_debugInformation.m_tryFocusRectDirection
+                ),
+                fillCol,
+                .1f,
                 rectColorMap.at(g_debugInformation.m_tryFocusRectType)
             );
 
@@ -647,9 +654,23 @@ void cl::Manager::updateDrawNode() {
                 .3f,
                 { .5f, .0f, .5f, 1.f }
             );
+
+            for (int i = (int)TryFocusRectType::Shrunken; i <= (int)TryFocusRectType::Extreme; i++) {
+                auto rect = cl::utils::createTryFocusRect(
+                    g_debugInformation.m_from,
+                    (TryFocusRectType)i,
+                    g_debugInformation.m_tryFocusRectDirection
+                );
+                overlay->drawRect(
+                    rect,
+                    { 0.f, 0.f, 0.f, 0.f },
+                    .4f,
+                    rectColorMap.at((TryFocusRectType)i)
+                );
+            }
         }
 
-        overlay->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
+        overlay->setUserObject("is-special-and-important-notification-node"_spr, cocos2d::CCBool::create(true));
         director->setNotificationNode(overlay);
     } else {
         auto winSize = director->getWinSizeInPixels();
@@ -670,7 +691,7 @@ void cl::Manager::updateDrawNode() {
         overlay->render.capture(g_button);
         g_button->m_sTransform = origTransform;
 
-        overlay->sprite->setUserObject("is-special-and-important"_spr, cocos2d::CCBool::create(true));
+        overlay->sprite->setUserObject("is-special-and-important-notification-node"_spr, cocos2d::CCBool::create(true));
         director->setNotificationNode(overlay->sprite);
     }
 }

@@ -1,5 +1,8 @@
 #include "shaders.hpp"
 
+// pull requests which improve this will be appreciated and most likely merged
+// ideally make anti-aliasing better and perhaps more efficient?
+
 const GLchar* g_outlineShaderFragment = R"(
 #ifdef GL_ES
 precision lowp float;

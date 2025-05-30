@@ -143,9 +143,23 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
 
     auto rect = cocos2d::CCRect{ bl.x, bl.y, tr.x - bl.x, tr.y - bl.y };
 
-    // TODO: doesnt work for textinputs in vaults or the login screen
+    // textinputs are so silly
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) {
         rect.origin.y -= rect.size.height / 2.f;
+
+        // adjust for middle aligned text inputs
+        if (auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(node)) {
+            rect.origin.x -= rect.size.width * cast->m_textField->getAnchorPoint().x;
+        } else {
+            geode::log::warn("Getting bounding box of text input that is not a CCTextInputNode!");
+        }
+
+        // non geode textinputs are so CHUNKY
+        if (!cl::utils::textInputIsFromGeode(node)) {
+            auto fixedHeight = rect.size.height * .7f;
+            rect.origin.y += (rect.size.height - fixedHeight) / 2.f;
+            rect.size.height = fixedHeight;
+        }
     }
 
     if (std::string_view(node->getID()) == "copy-username-button") {
@@ -175,23 +189,23 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
 
     // adjust initial pos to ensure the rect is to one side of the button
     // x1.5 to ensure buttons that are on the same secondary axis or overlapping
-    // dont get selected (maximum 40 points extra)
+    // dont get selected (maximum 20 points extra)
     switch (direction) {
         case Direction::Up:
             tryFocusRect.origin.y += tryFocusRect.size.height;
-            tryFocusRect.origin.y += std::min(40.f, tryFocusRect.size.height * 0.5f);
+            tryFocusRect.origin.y += std::min(20.f, tryFocusRect.size.height * 0.5f);
             break;
         case Direction::Down:
             tryFocusRect.origin.y -= tryFocusRect.size.height;
-            tryFocusRect.origin.y -= std::min(40.f, tryFocusRect.size.height * 0.5f);
+            tryFocusRect.origin.y -= std::min(20.f, tryFocusRect.size.height * 0.5f);
             break;
         case Direction::Left:
             tryFocusRect.origin.x -= tryFocusRect.size.width;
-            tryFocusRect.origin.x -= std::min(40.f, tryFocusRect.size.width * 0.5f);
+            tryFocusRect.origin.x -= std::min(20.f, tryFocusRect.size.width * 0.5f);
             break;
         case Direction::Right:
             tryFocusRect.origin.x += tryFocusRect.size.width;
-            tryFocusRect.origin.x += std::min(40.f, tryFocusRect.size.width * 0.5f);
+            tryFocusRect.origin.x += std::min(20.f, tryFocusRect.size.width * 0.5f);
             break;
         case Direction::None:
             break;
@@ -240,8 +254,8 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
         case TryFocusRectType::Enlarged:
         case TryFocusRectType::FurtherEnlarged:
-            tryFocusRect.origin -= cocos2d::CCPoint{ 5.f, 5.f };
-            tryFocusRect.size += cocos2d::CCPoint{ 10.f, 10.f };
+            tryFocusRect.origin -= cocos2d::CCPoint{ 7.5f, 7.5f };
+            tryFocusRect.size += cocos2d::CCPoint{ 15.f, 15.f };
             break;
         case TryFocusRectType::Extreme:
             switch (direction) {
@@ -294,6 +308,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         { "submit", 5 },
         { "open", 5 },
         { "add", 5 }, // ck in mind
+        { "more", 5 }, // moderrorpopup in mind
 
         // for most layers this prioritises the button in the most top left
         // corner, not the button you're most likely going to be navigating to
@@ -685,8 +700,9 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
         }
 
         case FocusableNodeType::TextInput: {
-            // note: cctextinputnode SELECT DOES FOCUS the text input because it makes
-            // more sense to focus it on button down than button up
+            // this used to select the text input on button down instead of
+            // button up like it does now (makes more sense imo) but complicated
+            // other parts of the code so its just all done on button up now
             if (auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(node)) {
                 auto touch = new cocos2d::CCTouch;
                 auto bb = cl::utils::getNodeBoundingBox(node);
@@ -698,7 +714,10 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                         break;
                     }
                     
-                    case FocusInteractionType::Select: {
+                    case FocusInteractionType::Select:
+                        return true;
+                        
+                    case FocusInteractionType::Activate: {
                         // TODO: check if ck pr has been put into a release
                         auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                         point = cocos2d::CCDirector::get()->convertToGL(point);
@@ -706,9 +725,6 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                         touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);
                         break;
                     }
-
-                    case FocusInteractionType::Activate:
-                        break;
                 }
                 
                 cast->ccTouchBegan(touch, nullptr);
@@ -809,9 +825,21 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
 
     // was thinking about seeing every ccscale9sprite child of this node and
     // checking if its transparent enough perhaps, but that is somewhat overkill
-    // when this only applies to literally this ingame
+    // when this only applies to two cases in vanilla and a bit of geode
 
-    if (std::string_view(node->getID()) == "level-button") return true;
+    auto id = std::string_view(node->getID());
+    if (id == "level-button") return true;
+
+    // sliderthumbs look a bit ass
+    // TODO: fix the half transparency compressed mess it has going on
+    if (cl::utils::buttonIsActuallySliderThumb(node)) return true;
+
+    // check user object (set on GeodeTabSprite)
+    for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
+        if (child->getUserObject("force-shadowed-selection"_spr)) {
+            return true;
+        }
+    }
 
     return false;
 }
@@ -837,6 +865,19 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
             if (cast->getOpacity() == 0) return true;
         }
     }
+    
+    // and check user object
+    for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
+        if (child->getUserObject("force-legacy-selection"_spr)) {
+            return true;
+        }
+    }
 
+    return false;
+}
+
+bool cl::utils::textInputIsFromGeode(cocos2d::CCNode* node) {
+    if (!node->getParent()) return false;
+    if (geode::cast::typeinfo_cast<geode::TextInput*>(node->getParent())) return true;
     return false;
 }

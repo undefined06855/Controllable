@@ -1,6 +1,8 @@
 #include "ModSettingsPopup.hpp"
 #include "../../utils.hpp"
 
+// TODO: is this still necessary?
+
 void HookedModSettingsPopup::modify() {
     if (!cl::utils::isUsingController()) return;
 

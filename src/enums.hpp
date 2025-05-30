@@ -54,8 +54,8 @@ enum class SelectionOutlineType {
 
 
 struct DebugInformation {
-    cocos2d::CCRect m_tryFocusRect;
     TryFocusRectType m_tryFocusRectType;
+    Direction m_tryFocusRectDirection;
     cocos2d::CCRect m_from;
     cocos2d::CCRect m_to;
 };

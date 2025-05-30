@@ -6,7 +6,7 @@ void HookedCCDirector::setNotificationNode(cocos2d::CCNode* node) {
         return;
     }
 
-    if (node->getUserObject("is-special-and-important"_spr)) {
+    if (node->getUserObject("is-special-and-important-notification-node"_spr)) {
         CCDirector::setNotificationNode(node);
         return;
     }
