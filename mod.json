@@ -27,7 +27,8 @@
     },
 
 	"dependencies": {
-		"alphalaneous.alphas_geode_utils": "v1.1.5"
+		"alphalaneous.alphas_geode_utils": "v1.1.5",
+        "geode.node-ids": "v1.20.1"
 	},
 
     "settings": {
