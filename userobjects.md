@@ -5,6 +5,10 @@ done for specific node types are always checked with a typeinfo cast, so
 although types will be assumed, it will likely not crash if an unrelated node
 is given a special user object.
 
+You can give your custom nodes these user objects if Controllable doesn't, or
+you want them to be focusable or to act as a button, but most likely it will
+not do anything and make a bunch of warnings pop up in the console.
+
 - `is-focusable`
     - Marks that the node is focusable
     - Set on `CCMenuItem`, `CCTextInputNode` and `DialogLayer`

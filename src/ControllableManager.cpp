@@ -7,10 +7,11 @@
 
 // rest of the members are settings and can stay uninitialised
 cl::Manager::Manager()
-    : m_outlineShaderProgram(nullptr)
-    , m_forceSelectionIncludeShadow(false)
+    : m_settingsChangedThisFrame(false)
 
-    , m_settingsChangedThisFrame(false)
+    , m_failedToLoadShader(false)
+    , m_outlineShaderProgram(nullptr)
+    , m_forceSelectionIncludeShadow(false)
 
     , m_editingTextRepeatTimer(0.f)
     , m_scrollTime(0.f) {}
@@ -96,8 +97,8 @@ void cl::Manager::createShaders() {
     m_outlineShaderProgram = new cocos2d::CCGLProgram;
     bool ret = m_outlineShaderProgram->initWithVertexShaderByteArray(g_outlineShaderVertex, g_outlineShaderFragment);
     if (!ret) {
-        // TODO: better debugging for failed shader compilation
-        geode::log::debug("{}", (cocos2d::CCObject*)(void*)0xb00b1e5);
+        // geode::log::debug("{}", (cocos2d::CCObject*)(void*)0xb00b1e5);
+        m_failedToLoadShader = true;
     }
 
     m_outlineShaderProgram->addAttribute(kCCAttributeNamePosition, cocos2d::kCCVertexAttrib_Position);
@@ -124,6 +125,7 @@ void cl::Manager::update(float dt) {
 
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
     // does this also happen for checkboxes / any switcher with two buttons?
+    // TODO: android support???
 
     // force reset if the button goes offscreen or we are transitioning
     if (cl::utils::isNodeOffscreen(g_button) || cocos2d::CCDirector::get()->getIsTransitioning()) {
@@ -570,11 +572,11 @@ void cl::Manager::depressButton(GamepadButton button) {
     } else if (button == GamepadButton::L) {
         // press any left buttons onscreen
         auto left = cl::utils::findNavArrow(NavigationArrowType::Left);
-        if (left) left->activate();
+        cl::utils::interactWithFocusableElement(left, FocusInteractionType::Activate);
     } else if (button == GamepadButton::R) {
         // press any right buttons onscreen
         auto right = cl::utils::findNavArrow(NavigationArrowType::Right);
-        if (right) right->activate();
+        cl::utils::interactWithFocusableElement(right, FocusInteractionType::Activate);
     }
 }
 

@@ -29,12 +29,13 @@ public:
 
     bool m_settingsChangedThisFrame;
 
+    bool m_failedToLoadShader;
     cocos2d::CCGLProgram* m_outlineShaderProgram;
+    
     bool m_forceSelectionIncludeShadow;
 
     float m_editingTextRepeatTimer;
     float m_scrollTime;
-
 
     // shader + settings stuff
     void updateSettings();

@@ -8,9 +8,12 @@ void cl::utils::clearCurrentButton() {
     if (!g_button) return;
 
     // deselect old button if we're in hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) {
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
+     && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
             cast->unselected();
+        } else {
+            geode::log::warn("Was deselecting button but not focused on a CCMenuItem!");
         }
     }
 
@@ -25,9 +28,12 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
     g_button = node;
 
     // select the button if we're in hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) {
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
+     && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
-            cast->selected();
+            cast->unselected();
+        } else {
+            geode::log::warn("Was selecting button but not focused on a CCMenuItem!");
         }
     }
 
@@ -88,7 +94,7 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     // parent is important, this is top z layer, this is first pass, we only
     // want this dialog layer to be selectable so we only have this dialog layer
     // to return
-    if (node->getUserObject("is-dialog-layer"_spr)) {
+    if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::DialogLayer) {
         return { node };
     }
 
@@ -107,6 +113,8 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
             && child->isVisible()
         ) {
             // note: dialog layers are handled specially above
+
+            // do node specific checks
             auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(child);
             auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(child);
             if (
@@ -140,7 +148,7 @@ cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
         rect.origin.y -= rect.size.height / 2.f;
     }
 
-    if (node->getID() == "copy-username-button") {
+    if (std::string_view(node->getID()) == "copy-username-button") {
         auto newWidth = rect.size.width * 6.5f;
         rect.origin.x -= newWidth / 2.f;
         rect.size.width = newWidth;
@@ -319,7 +327,8 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     };
 
     for (auto button : buttons) {
-        if (!geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(button)) continue;
+        // dont do this for non-buttons
+        if (cl::utils::getFocusableNodeType(button) != FocusableNodeType::Button) continue;
         int importantness = 0;
         
         // check if this contains a sprite
@@ -345,7 +354,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         }
 
         // check if this has an id
-        auto id = button->getID();
+        auto id = std::string_view(button->getID());
         if (id != "") {
             if (buttonIDImportantness.contains(id)) {
                 importantness += buttonIDImportantness.at(id);
@@ -594,7 +603,7 @@ geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* 
     }
 }
 
-cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
+cocos2d::CCNode* cl::utils::findNavArrow(NavigationArrowType type) {
     auto buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
 
     static constexpr std::array<std::string_view, 5> arrowButtonNames = {
@@ -606,7 +615,7 @@ cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
     };
 
     for (auto button : buttons) {
-        if (!geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(button)) continue;
+        if (cl::utils::getFocusableNodeType(button) != FocusableNodeType::Button) continue;
 
         auto sprite = button->getChildByType<cocos2d::CCSprite*>(0);
         if (sprite) {
@@ -627,15 +636,15 @@ cocos2d::CCMenuItem* cl::utils::findNavArrow(NavigationArrowType type) {
                     auto bb = cl::utils::getNodeBoundingBox(button);
                     auto top = cocos2d::CCDirector::get()->getWinSize().height;
                     if (bb.getMaxX() < 30.f || bb.getMaxY() > top - 30.f) {
-                        // probably is
+                        // probably is a back button :(
                         continue;
                     }
 
-                    // probably isnt!
-                    return static_cast<cocos2d::CCMenuItem*>(button);
+                    // probably isnt a back button I hope
+                    return button;
                 } else {
-                    // it wont be
-                    return static_cast<cocos2d::CCMenuItem*>(button);
+                    // it wont be a back button, this is certainly it
+                    return button;
                 }
             }
         }
@@ -649,65 +658,86 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
     // Selected - A down on the button (should NOT activate/focus)
     // Activate - A up on the button (should activate/focus)
 
-    if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node)) {
-        switch (interaction) {
-            case FocusInteractionType::Unselect:
-                cast->unselected();
-                break;
-            case FocusInteractionType::Select:
-                cast->selected();
-                break;
-            case FocusInteractionType::Activate:
-                cast->activate();
-                break;
-        }
-
-        return true;
-    }
-
-    // note: cctextinputnode SELECT DOES FOCUS the text input because it makes
-    // more sense to focus it on button down than button up
-    if (auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(node)) {
-        auto touch = new cocos2d::CCTouch;
-        auto bb = cl::utils::getNodeBoundingBox(node);
-        touch->autorelease();
-
-        switch (interaction) {
-            case FocusInteractionType::Unselect: {
-                touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 99999.f, 99999.f);
-                break;
-            }
-            
-            case FocusInteractionType::Select: {
-                // TODO: check if ck pr has been put into a release
-                auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
-                point = cocos2d::CCDirector::get()->convertToGL(point);
-                touch->autorelease();
-                touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);
-                break;
-            }
-
-            case FocusInteractionType::Activate:
-                break;
-        }
+    switch (cl::utils::getFocusableNodeType(node)) {
+        case FocusableNodeType::Unknown:
+            geode::log::warn("Attempted interaction on unknown node type!");
+            break;
         
-        cast->ccTouchBegan(touch, nullptr);
+        case FocusableNodeType::Button: {
+            if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node)) {
+                switch (interaction) {
+                    case FocusInteractionType::Unselect:
+                        cast->unselected();
+                        break;
+                    case FocusInteractionType::Select:
+                        cast->selected();
+                        break;
+                    case FocusInteractionType::Activate:
+                        cast->activate();
+                        break;
+                }
 
-        return true;
-    }
-
-    // nothing happens here except on activate (button UP) idk pretty boring
-    if (auto cast = geode::cast::typeinfo_cast<DialogLayer*>(node)) {
-        switch (interaction) {
-            case FocusInteractionType::Unselect:
-            case FocusInteractionType::Select:
-                break;
-            case FocusInteractionType::Activate: {
-                cast->handleDialogTap();
+                return true;
+            } else {
+                geode::log::warn("Was interacting with button that is not a CCMenuItem!");
+                return false;
             }
         }
 
-        return true;
+        case FocusableNodeType::TextInput: {
+            // note: cctextinputnode SELECT DOES FOCUS the text input because it makes
+            // more sense to focus it on button down than button up
+            if (auto cast = geode::cast::typeinfo_cast<CCTextInputNode*>(node)) {
+                auto touch = new cocos2d::CCTouch;
+                auto bb = cl::utils::getNodeBoundingBox(node);
+                touch->autorelease();
+
+                switch (interaction) {
+                    case FocusInteractionType::Unselect: {
+                        touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 99999.f, 99999.f);
+                        break;
+                    }
+                    
+                    case FocusInteractionType::Select: {
+                        // TODO: check if ck pr has been put into a release
+                        auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
+                        point = cocos2d::CCDirector::get()->convertToGL(point);
+                        touch->autorelease();
+                        touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, point.x, point.y);
+                        break;
+                    }
+
+                    case FocusInteractionType::Activate:
+                        break;
+                }
+                
+                cast->ccTouchBegan(touch, nullptr);
+
+                return true;
+            } else {
+                geode::log::warn("Was interacting with text input that is not a CCTextInputNode!");
+                return false;
+            }
+        }
+
+        case FocusableNodeType::DialogLayer: {
+            // nothing happens here except on activate (button UP) idk pretty boring
+            if (auto cast = geode::cast::typeinfo_cast<DialogLayer*>(node)) {
+                switch (interaction) {
+                    case FocusInteractionType::Unselect:
+                    case FocusInteractionType::Select:
+                        break;
+                    case FocusInteractionType::Activate: {
+                        cast->handleDialogTap();
+                    }
+                }
+
+                return true;
+            } else {
+                geode::log::warn("Was interacting with dialog that is not a DialogLayer!");
+                return false;
+            }
+        }
     }
 
     // pretty sure this log will crash :fire:
@@ -730,10 +760,13 @@ bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
 // this is used for any time a child is a popup but is added to the current 
 // layer instead of ccscene so it doesnt automatically get treated as the child
 // of an important layer
+// note we cant use id to find flalertlayer like we can with gjdropdownlayer
+// because we also need to return true for alerts that perhaps only inherit
 bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
-    if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) return true;
+    // if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) return true;
+    if (std::string_view(child->getID()) == "GJDropDownLayer") return true;
     if (geode::cast::typeinfo_cast<FLAlertLayer*>(child)) return true;
-    if (child->getUserObject("is-dialog-layer"_spr)) return true;
+    if (cl::utils::getFocusableNodeType(child) == FocusableNodeType::DialogLayer) return true;
     return false;
 }
 
@@ -754,7 +787,7 @@ bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
         // "hjfod.quick-volume-controls/overlay",
     };
 
-    return std::find(ids.begin(), ids.end(), child->getID()) != ids.end();
+    return std::find(ids.begin(), ids.end(), std::string_view(child->getID())) != ids.end();
 }
 
 bool cl::utils::isUsingController() {
@@ -778,7 +811,7 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
     // checking if its transparent enough perhaps, but that is somewhat overkill
     // when this only applies to literally this ingame
 
-    if (node->getID() == "level-button") return true;
+    if (std::string_view(node->getID()) == "level-button") return true;
 
     return false;
 }
@@ -789,6 +822,9 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
     // if we're not using shader this shouldnt matter
     if (cl::Manager::get().m_selectionOutlineType != SelectionOutlineType::Shader) return false;
 
+    // if it failed to load the shader we should always use legacy
+    if (cl::Manager::get().m_failedToLoadShader) return true;
+
     // cctextinputnode's ccscale9sprite isnt connected to the actual input in
     // any way that i can easily check so i cant put this in the force include
     // shadow check above which would make it look nicer
@@ -796,7 +832,7 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) return true;
 
     // secret door but invisible - need to show it
-    if (node->getID() == "secret-door-button") {
+    if (std::string_view(node->getID()) == "secret-door-button") {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCNodeRGBA*>(node->getChildByID("secret-door-sprite"))) {
             if (cast->getOpacity() == 0) return true;
         }

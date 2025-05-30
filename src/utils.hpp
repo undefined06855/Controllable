@@ -28,7 +28,7 @@ T findParentOfType(cocos2d::CCNode* node);
 std::string getNodeClassName(cocos2d::CCNode* node);
 geode::Result<std::string> getSpriteNodeFrameName(cocos2d::CCSprite* sprite);
 
-cocos2d::CCMenuItem* findNavArrow(NavigationArrowType type);
+cocos2d::CCNode* findNavArrow(NavigationArrowType type);
 
 bool interactWithFocusableElement(cocos2d::CCNode* node, FocusInteractionType interaction);
 
