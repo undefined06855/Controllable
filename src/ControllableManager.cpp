@@ -629,7 +629,7 @@ void cl::Manager::updateDrawNode() {
 
         if (m_otherDebug) {
             auto fillCol = rectColorMap.at(g_debugInformation.m_tryFocusRectType);
-            fillCol.a = .1f;
+            fillCol.a = .01f;
             overlay->drawRect(
                 cl::utils::createTryFocusRect(
                     g_debugInformation.m_from,

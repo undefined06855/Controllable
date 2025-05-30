@@ -187,25 +187,50 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
         tryFocusRect.size.width += diff;
     }
 
+    float maximumJump;
+    float jumpOffset;
+    switch (type) {
+        case TryFocusRectType::Shrunken:
+            maximumJump = 5.f;
+            jumpOffset = 7.5f;
+            break;
+        case TryFocusRectType::Enlarged:
+        case TryFocusRectType::FurtherEnlarged:
+            maximumJump = 20.f;
+            jumpOffset = -7.5f;
+            break;
+        case TryFocusRectType::Extreme:
+            maximumJump = 40.f;
+            jumpOffset = -0.f;
+            break;
+    }
+
     // adjust initial pos to ensure the rect is to one side of the button
     // x1.5 to ensure buttons that are on the same secondary axis or overlapping
-    // dont get selected (maximum 20 points extra)
+    // dont get selected
+    // also here adjusts the rect if it gets scaled - e.g. Shrunken scales down
+    // the rect but around the centre, meaning the jump distance will be larger
+    // than it should be
     switch (direction) {
         case Direction::Up:
             tryFocusRect.origin.y += tryFocusRect.size.height;
-            tryFocusRect.origin.y += std::min(20.f, tryFocusRect.size.height * 0.5f);
+            tryFocusRect.origin.y += std::min(maximumJump, tryFocusRect.size.height * 0.5f);
+            tryFocusRect.origin.y -= jumpOffset;
             break;
         case Direction::Down:
             tryFocusRect.origin.y -= tryFocusRect.size.height;
-            tryFocusRect.origin.y -= std::min(20.f, tryFocusRect.size.height * 0.5f);
+            tryFocusRect.origin.y -= std::min(maximumJump, tryFocusRect.size.height * 0.5f);
+            tryFocusRect.origin.y += jumpOffset;
             break;
         case Direction::Left:
             tryFocusRect.origin.x -= tryFocusRect.size.width;
-            tryFocusRect.origin.x -= std::min(20.f, tryFocusRect.size.width * 0.5f);
+            tryFocusRect.origin.x -= std::min(maximumJump, tryFocusRect.size.width * 0.5f);
+            tryFocusRect.origin.x += jumpOffset;
             break;
         case Direction::Right:
             tryFocusRect.origin.x += tryFocusRect.size.width;
-            tryFocusRect.origin.x += std::min(20.f, tryFocusRect.size.width * 0.5f);
+            tryFocusRect.origin.x += std::min(maximumJump, tryFocusRect.size.width * 0.5f);
+            tryFocusRect.origin.x -= jumpOffset;
             break;
         case Direction::None:
             break;

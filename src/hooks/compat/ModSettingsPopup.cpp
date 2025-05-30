@@ -1,8 +1,6 @@
 #include "ModSettingsPopup.hpp"
 #include "../../utils.hpp"
 
-// TODO: is this still necessary?
-
 void HookedModSettingsPopup::modify() {
     if (!cl::utils::isUsingController()) return;
 
@@ -13,9 +11,9 @@ void HookedModSettingsPopup::modify() {
             FLAlertLayer::create(
                 nullptr,
                 "Controllable",
-                "Note that <co>Controllable</c> does <cr>not</c> work (well) "
-                "in <cy>Geode mod setting popups</c>, and you will most likely "
-                "have to edit the settings with a <cj>keyboard and mouse</c>!"
+                "Note that <co>Controllable</c> does <cr>not</c> work well in "
+                "<cy>Geode mod setting popups</c>, and you will most likely "
+                "have to edit mod settings with a <cj>keyboard and mouse</c>!"
                 "\n\n"
                 "This message will only be shown <cg>once</c>.",
                 "ok",
