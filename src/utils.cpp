@@ -430,40 +430,6 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     return mostImportantButton;
 }
 
-GamepadButton cl::utils::directionToButton(GamepadDirection direction) {
-    switch (direction) {
-        case GamepadDirection::None:
-            return GamepadButton::None;
-
-        case GamepadDirection::Up:
-            return GamepadButton::Up;
-        case GamepadDirection::Down:
-            return GamepadButton::Down;
-        case GamepadDirection::Left:
-            return GamepadButton::Left;
-        case GamepadDirection::Right:
-            return GamepadButton::Right;
-
-        case GamepadDirection::JoyUp:
-            return GamepadButton::JoyUp;
-        case GamepadDirection::JoyDown:
-            return GamepadButton::JoyDown;
-        case GamepadDirection::JoyLeft:
-            return GamepadButton::JoyLeft;
-        case GamepadDirection::JoyRight:
-            return GamepadButton::JoyRight;
-
-        case GamepadDirection::SecondaryJoyUp:
-            return GamepadButton::SecondaryJoyUp;
-        case GamepadDirection::SecondaryJoyDown:
-            return GamepadButton::SecondaryJoyDown;
-        case GamepadDirection::SecondaryJoyLeft:
-            return GamepadButton::SecondaryJoyLeft;
-        case GamepadDirection::SecondaryJoyRight:
-            return GamepadButton::SecondaryJoyRight;
-    }
-}
-
 Direction cl::utils::simplifyGamepadDirection(GamepadDirection direction) {
     switch (direction) {
         case GamepadDirection::None:

@@ -46,12 +46,15 @@ public:
     void update(float dt);
 
     // direction
-    void focusInDirection(GamepadDirection direction);
+    void pressDirection(GamepadDirection direction);
+    void depressDirection(GamepadDirection direction);
     cocos2d::CCNode* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons);
 
     // face buttons
     void pressButton(GamepadButton button);
     void depressButton(GamepadButton button);
+
+    void fallbackToGD(GamepadButton button, GamepadDirection direction, bool down);
 
     void updateDrawNode();
 };

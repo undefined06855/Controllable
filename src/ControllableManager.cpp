@@ -239,7 +239,11 @@ void cl::Manager::update(float dt) {
     // general direction and button inputs
     // these should be called while in a level to allow them to fallthrough
     if (directionPressed != GamepadDirection::None) {
-        focusInDirection(directionPressed);
+        pressDirection(directionPressed);
+    }
+
+    if (directionReleased != GamepadDirection::None) {
+        depressDirection(directionReleased);
     }
 
     if (buttonPressed != GamepadButton::None) {
@@ -253,18 +257,13 @@ void cl::Manager::update(float dt) {
     updateDrawNode();
 }
 
-void cl::Manager::focusInDirection(GamepadDirection direction) {
+void cl::Manager::pressDirection(GamepadDirection direction) {
     if (
         cl::utils::isPlayingLevel()
         || cl::utils::isKeybindPopupOpen()
         || cl::utils::directionIsSecondaryJoystick(direction)
     ) {
-        // not the best if people have a "hold" keybind mapped to d-pad/joystick
-        // (such as Rewind) but there's not really a nicer way to do this
-        // without treating directions as buttons and holding and releasing and
-        // all that mess
-        pressButton(cl::utils::directionToButton(direction));
-        depressButton(cl::utils::directionToButton(direction));
+        fallbackToGD(GamepadButton::None, direction, true);
         return;
     }
 
@@ -303,6 +302,17 @@ void cl::Manager::focusInDirection(GamepadDirection direction) {
             }
             return;
         }
+    }
+}
+
+// this only exists for the fallback
+void cl::Manager::depressDirection(GamepadDirection direction) {
+    if (
+        cl::utils::isPlayingLevel()
+        || cl::utils::isKeybindPopupOpen()
+        || cl::utils::directionIsSecondaryJoystick(direction)
+    ) {
+        fallbackToGD(GamepadButton::None, direction, false);
     }
 }
 
@@ -435,44 +445,12 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
     return closestButton;
 }
 
-#define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
-    case GamepadButton::gamepadBtn: \
-        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, press, false); \
-        break;
-
 void cl::Manager::pressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         // forward to cckeyboarddispatcher for gd built in handling
-        switch (button) {
-            CONTROLLER_CASE(A, CONTROLLER_A, true)
-            CONTROLLER_CASE(B, CONTROLLER_B, true)
-            CONTROLLER_CASE(X, CONTROLLER_X, true)
-            CONTROLLER_CASE(Y, CONTROLLER_Y, true)
-            CONTROLLER_CASE(Start, CONTROLLER_Start, true)
-            CONTROLLER_CASE(Select, CONTROLLER_Back, true)
-            CONTROLLER_CASE(L, CONTROLLER_LB, true)
-            CONTROLLER_CASE(R, CONTROLLER_RB, true)
-            CONTROLLER_CASE(ZL, CONTROLLER_LT, true)
-            CONTROLLER_CASE(ZR, CONTROLLER_RT, true)
-            CONTROLLER_CASE(Up, CONTROLLER_Up, true)
-            CONTROLLER_CASE(Down, CONTROLLER_Down, true)
-            CONTROLLER_CASE(Left, CONTROLLER_Left, true)
-            CONTROLLER_CASE(Right, CONTROLLER_Right, true)
-
-            // only used in fallback
-            CONTROLLER_CASE(JoyUp, CONTROLLER_LTHUMBSTICK_UP, true)
-            CONTROLLER_CASE(JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, true)
-            CONTROLLER_CASE(JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, true)
-            CONTROLLER_CASE(JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, true)
-            CONTROLLER_CASE(SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, true)
-            CONTROLLER_CASE(SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, true)
-            CONTROLLER_CASE(SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, true)
-            CONTROLLER_CASE(SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, true)
-            case GamepadButton::None: break;
-        }
-
+        fallbackToGD(button, GamepadDirection::None, true);
         return;
     }
 
@@ -495,33 +473,7 @@ void cl::Manager::depressButton(GamepadButton button) {
     // check
     // robtop does all the controller keybind stuff either on key down or in
     // that ccapplication function i removed idk i cant be bothered to check
-    switch (button) {
-        CONTROLLER_CASE(A, CONTROLLER_A, false)
-        CONTROLLER_CASE(B, CONTROLLER_B, false)
-        CONTROLLER_CASE(X, CONTROLLER_X, false)
-        CONTROLLER_CASE(Y, CONTROLLER_Y, false)
-        CONTROLLER_CASE(Start, CONTROLLER_Start, false)
-        CONTROLLER_CASE(Select, CONTROLLER_Back, false)
-        CONTROLLER_CASE(L, CONTROLLER_LB, false)
-        CONTROLLER_CASE(R, CONTROLLER_RB, false)
-        CONTROLLER_CASE(ZL, CONTROLLER_LT, false)
-        CONTROLLER_CASE(ZR, CONTROLLER_RT, false)
-        CONTROLLER_CASE(Up, CONTROLLER_Up, false)
-        CONTROLLER_CASE(Down, CONTROLLER_Down, false)
-        CONTROLLER_CASE(Left, CONTROLLER_Left, false)
-        CONTROLLER_CASE(Right, CONTROLLER_Right, false)
-
-        // only used in fallback
-        CONTROLLER_CASE(JoyUp, CONTROLLER_LTHUMBSTICK_UP, false)
-        CONTROLLER_CASE(JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, false)
-        CONTROLLER_CASE(JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, false)
-        CONTROLLER_CASE(JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, false)
-        CONTROLLER_CASE(SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, false)
-        CONTROLLER_CASE(SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, false)
-        CONTROLLER_CASE(SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, false)
-        CONTROLLER_CASE(SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, false)
-        case GamepadButton::None: break;
-    }
+    fallbackToGD(button, GamepadDirection::None, false);
 
     // only use fallback if we're playing level etc
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
@@ -578,6 +530,47 @@ void cl::Manager::depressButton(GamepadButton button) {
         // press any right buttons onscreen
         auto right = cl::utils::findNavArrow(NavigationArrowType::Right);
         cl::utils::interactWithFocusableElement(right, FocusInteractionType::Activate);
+    }
+}
+
+#define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
+    case gamepadBtn: \
+        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, press, false); \
+        return;
+
+void cl::Manager::fallbackToGD(GamepadButton button, GamepadDirection direction, bool down) {
+    switch (button) {
+        CONTROLLER_CASE(GamepadButton::A, CONTROLLER_A, down)
+        CONTROLLER_CASE(GamepadButton::B, CONTROLLER_B, down)
+        CONTROLLER_CASE(GamepadButton::X, CONTROLLER_X, down)
+        CONTROLLER_CASE(GamepadButton::Y, CONTROLLER_Y, down)
+        CONTROLLER_CASE(GamepadButton::Start, CONTROLLER_Start, down)
+        CONTROLLER_CASE(GamepadButton::Select, CONTROLLER_Back, down)
+        CONTROLLER_CASE(GamepadButton::L, CONTROLLER_LB, down)
+        CONTROLLER_CASE(GamepadButton::R, CONTROLLER_RB, down)
+        CONTROLLER_CASE(GamepadButton::ZL, CONTROLLER_LT, down)
+        CONTROLLER_CASE(GamepadButton::ZR, CONTROLLER_RT, down)
+        CONTROLLER_CASE(GamepadButton::Up, CONTROLLER_Up, down)
+        CONTROLLER_CASE(GamepadButton::Down, CONTROLLER_Down, down)
+        CONTROLLER_CASE(GamepadButton::Left, CONTROLLER_Left, down)
+        CONTROLLER_CASE(GamepadButton::Right, CONTROLLER_Right, down)
+        case GamepadButton::None: break;
+    }
+
+    switch (direction) {
+        CONTROLLER_CASE(GamepadDirection::Up, CONTROLLER_Up, down)
+        CONTROLLER_CASE(GamepadDirection::Down, CONTROLLER_Down, down)
+        CONTROLLER_CASE(GamepadDirection::Left, CONTROLLER_Left, down)
+        CONTROLLER_CASE(GamepadDirection::Right, CONTROLLER_Right, down)
+        CONTROLLER_CASE(GamepadDirection::JoyUp, CONTROLLER_LTHUMBSTICK_UP, down)
+        CONTROLLER_CASE(GamepadDirection::JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, down)
+        CONTROLLER_CASE(GamepadDirection::JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, down)
+        CONTROLLER_CASE(GamepadDirection::JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, down)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, down)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, down)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, down)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, down)
+        case GamepadDirection::None: break;
     }
 }
 
