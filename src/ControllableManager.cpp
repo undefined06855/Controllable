@@ -533,43 +533,43 @@ void cl::Manager::depressButton(GamepadButton button) {
     }
 }
 
-#define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
+#define CONTROLLER_CASE(gamepadBtn, cocosBtn) \
     case gamepadBtn: \
-        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, press, false); \
+        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, down, false); \
         return;
 
 void cl::Manager::fallbackToGD(GamepadButton button, GamepadDirection direction, bool down) {
     switch (button) {
-        CONTROLLER_CASE(GamepadButton::A, CONTROLLER_A, down)
-        CONTROLLER_CASE(GamepadButton::B, CONTROLLER_B, down)
-        CONTROLLER_CASE(GamepadButton::X, CONTROLLER_X, down)
-        CONTROLLER_CASE(GamepadButton::Y, CONTROLLER_Y, down)
-        CONTROLLER_CASE(GamepadButton::Start, CONTROLLER_Start, down)
-        CONTROLLER_CASE(GamepadButton::Select, CONTROLLER_Back, down)
-        CONTROLLER_CASE(GamepadButton::L, CONTROLLER_LB, down)
-        CONTROLLER_CASE(GamepadButton::R, CONTROLLER_RB, down)
-        CONTROLLER_CASE(GamepadButton::ZL, CONTROLLER_LT, down)
-        CONTROLLER_CASE(GamepadButton::ZR, CONTROLLER_RT, down)
-        CONTROLLER_CASE(GamepadButton::Up, CONTROLLER_Up, down)
-        CONTROLLER_CASE(GamepadButton::Down, CONTROLLER_Down, down)
-        CONTROLLER_CASE(GamepadButton::Left, CONTROLLER_Left, down)
-        CONTROLLER_CASE(GamepadButton::Right, CONTROLLER_Right, down)
+        CONTROLLER_CASE(GamepadButton::A, CONTROLLER_A)
+        CONTROLLER_CASE(GamepadButton::B, CONTROLLER_B)
+        CONTROLLER_CASE(GamepadButton::X, CONTROLLER_X)
+        CONTROLLER_CASE(GamepadButton::Y, CONTROLLER_Y)
+        CONTROLLER_CASE(GamepadButton::Start, CONTROLLER_Start)
+        CONTROLLER_CASE(GamepadButton::Select, CONTROLLER_Back)
+        CONTROLLER_CASE(GamepadButton::L, CONTROLLER_LB)
+        CONTROLLER_CASE(GamepadButton::R, CONTROLLER_RB)
+        CONTROLLER_CASE(GamepadButton::ZL, CONTROLLER_LT)
+        CONTROLLER_CASE(GamepadButton::ZR, CONTROLLER_RT)
+        CONTROLLER_CASE(GamepadButton::Up, CONTROLLER_Up)
+        CONTROLLER_CASE(GamepadButton::Down, CONTROLLER_Down)
+        CONTROLLER_CASE(GamepadButton::Left, CONTROLLER_Left)
+        CONTROLLER_CASE(GamepadButton::Right, CONTROLLER_Right)
         case GamepadButton::None: break;
     }
 
     switch (direction) {
-        CONTROLLER_CASE(GamepadDirection::Up, CONTROLLER_Up, down)
-        CONTROLLER_CASE(GamepadDirection::Down, CONTROLLER_Down, down)
-        CONTROLLER_CASE(GamepadDirection::Left, CONTROLLER_Left, down)
-        CONTROLLER_CASE(GamepadDirection::Right, CONTROLLER_Right, down)
-        CONTROLLER_CASE(GamepadDirection::JoyUp, CONTROLLER_LTHUMBSTICK_UP, down)
-        CONTROLLER_CASE(GamepadDirection::JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, down)
-        CONTROLLER_CASE(GamepadDirection::JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, down)
-        CONTROLLER_CASE(GamepadDirection::JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, down)
-        CONTROLLER_CASE(GamepadDirection::SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, down)
-        CONTROLLER_CASE(GamepadDirection::SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, down)
-        CONTROLLER_CASE(GamepadDirection::SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, down)
-        CONTROLLER_CASE(GamepadDirection::SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, down)
+        CONTROLLER_CASE(GamepadDirection::Up, CONTROLLER_Up)
+        CONTROLLER_CASE(GamepadDirection::Down, CONTROLLER_Down)
+        CONTROLLER_CASE(GamepadDirection::Left, CONTROLLER_Left)
+        CONTROLLER_CASE(GamepadDirection::Right, CONTROLLER_Right)
+        CONTROLLER_CASE(GamepadDirection::JoyUp, CONTROLLER_LTHUMBSTICK_UP)
+        CONTROLLER_CASE(GamepadDirection::JoyDown, CONTROLLER_LTHUMBSTICK_DOWN)
+        CONTROLLER_CASE(GamepadDirection::JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT)
+        CONTROLLER_CASE(GamepadDirection::JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT)
         case GamepadDirection::None: break;
     }
 }
