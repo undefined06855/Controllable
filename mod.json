@@ -116,7 +116,7 @@
         "other-debug": {
             "type": "bool",
             "name": "Debug Information",
-            "description": "Add more debugging information as to how Controllable decides what button to switch to next. Only shows with the Legacy outline type.",
+            "description": "Add more debugging information as to how Controllable decides what button to switch to next. Will force the outline type to Legacy.",
             "default": false
         }
     }

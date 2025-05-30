@@ -201,7 +201,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
         case TryFocusRectType::Extreme:
             maximumJump = 40.f;
-            jumpOffset = -0.f;
+            jumpOffset = -10.f;
             break;
     }
 
@@ -838,11 +838,16 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
 bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
     if (!node) return false;
 
+    auto& manager = cl::Manager::get();
+
+    // if we have debug info force legacy
+    if (manager.m_otherDebug) return true;
+
     // if we're not using shader this shouldnt matter
-    if (cl::Manager::get().m_selectionOutlineType != SelectionOutlineType::Shader) return false;
+    if (manager.m_selectionOutlineType != SelectionOutlineType::Shader) return false;
 
     // if it failed to load the shader we should always use legacy
-    if (cl::Manager::get().m_failedToLoadShader) return true;
+    if (manager.m_failedToLoadShader) return true;
 
     // cctextinputnode's ccscale9sprite isnt connected to the actual input in
     // any way that i can easily check so i cant put this in the force include
