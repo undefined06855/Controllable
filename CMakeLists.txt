@@ -23,11 +23,17 @@ file(GLOB_RECURSE MACSOURCES
     src/platform/macos/*.cpp
     src/platform/macos/hooks/*.cpp
 )
+file(GLOB_RECURSE ANDROIDSOURCES
+    src/platform/android/*.cpp
+    src/platform/android/hooks/*.cpp
+)
 
 if (WIN32)
     list(APPEND SOURCES ${WINSOURCES})
 elseif (APPLE)
     list(APPEND SOURCES ${MACSOURCES})
+elseif (ANDROID)
+    list(APPEND SOURCES ${ANDROIDSOURCES})
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
