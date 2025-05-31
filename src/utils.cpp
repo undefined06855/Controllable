@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include "ControllableManager.hpp"
+#include "Geode/ui/TextRenderer.hpp"
 #include "enums.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
@@ -27,7 +28,7 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
 
     g_button = node;
 
-    // select the button if we're in hover selection type
+    // deselect the button if we're in hover selection type
     if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
      && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
@@ -40,6 +41,14 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
     // start hovering button if we're pressing A
     if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+    }
+
+    // if this is a link in an mdtextarea, call select and unselect to prevent
+    // some uninitialised member bs
+    // https://discord.com/channels/911701438269386882/911702535373475870/1378456881760305203
+    if (g_button->getUserObject("requires-selected-before-unselected"_spr)) {
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
     }
 }
 
@@ -828,6 +837,7 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
     if (cl::utils::buttonIsActuallySliderThumb(node)) return true;
 
     // check user object
+    if (node->getUserObject("force-shadowed-selection"_spr)) return true;
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (child->getUserObject("force-shadowed-selection"_spr)) {
             return true;
@@ -865,6 +875,7 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
     }
     
     // and check user object
+    if (node->getUserObject("force-legacy-selection"_spr)) return true;
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (child->getUserObject("force-legacy-selection"_spr)) {
             return true;
