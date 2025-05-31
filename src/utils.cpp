@@ -348,6 +348,8 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         { "save", 4 },
         { "links", 4 },
         { "refresh login", 4 },
+        { "log in", 4 },
+        { "login", 4 },
         { "next", 4 },
 
         // most popups - negative button

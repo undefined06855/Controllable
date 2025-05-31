@@ -53,8 +53,8 @@ Note that all of these are prefixed with the mod id,
     - Marks that the **parent** of this sprite (which should be a `CCMenuItem`),
     when the outline is drawn, to force it to include shadow (likely because
     this sprite is or contains a low opacity sprite)
-    - Set on `GeodeTabSprite`, but shadowed selection is hardcoded on
-    `SliderThumbs` because they look really bad otherwise
+    - Set on `GeodeTabSprite` and disabled `GJItemIcon`s, but shadowed selection
+    is hardcoded on `SliderThumbs`
 
 - `force-legacy-selection`
     - Marks that the **parent** of this sprite (which should be a `CCMenuItem`),
