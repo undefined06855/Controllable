@@ -827,7 +827,7 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
     // TODO: fix the half transparency compressed mess it has going on
     if (cl::utils::buttonIsActuallySliderThumb(node)) return true;
 
-    // check user object (set on GeodeTabSprite)
+    // check user object
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (child->getUserObject("force-shadowed-selection"_spr)) {
             return true;
