@@ -10,7 +10,8 @@ you want them to be focusable or to act as a button, but most likely it will
 not do anything and make a bunch of warnings pop up in the console.
 
 It is recommended to set `force-shadowed-selection` and `force-legacy-selection`
-on sprites and nodes that need it, as those are guaranteed to work, and will help!
+on your sprites and nodes that may need it, as those are guaranteed to work with
+no issue, and will help the mod decide how to draw the outline for those nodes!
 
 Note that all of these are prefixed with the mod id,
 `undefined06855.Controllable/`.
@@ -53,8 +54,8 @@ Note that all of these are prefixed with the mod id,
     - Marks that the **parent** of this sprite (which should be a `CCMenuItem`),
     when the outline is drawn, to force it to include shadow (likely because
     this sprite is or contains a low opacity sprite)
-    - Set on `GeodeTabSprite` and disabled `GJItemIcon`s, but shadowed selection
-    is hardcoded on `SliderThumbs`
+    - Set on `GeodeTabSprite` and `GJItemIcon`, but shadowed selection
+    is hardcoded on `SliderThumb`s
 
 - `force-legacy-selection`
     - Marks that the **parent** of this sprite (which should be a `CCMenuItem`),
