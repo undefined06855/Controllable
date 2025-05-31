@@ -109,7 +109,7 @@
         },
         "other-force-state": {
             "type": "string",
-            "name": "Controller Test",
+            "name": "Controller Detection",
             "default": "Automatic",
             "one-of": [ "Automatic", "Force Not Using Controller", "Force Using Controller" ]
         },
