@@ -1,6 +1,5 @@
 #include "utils.hpp"
 #include "ControllableManager.hpp"
-#include "Geode/ui/TextRenderer.hpp"
 #include "enums.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
