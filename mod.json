@@ -107,6 +107,12 @@
             "type": "title",
             "name": "Other"
         },
+        "other-remove-gd-icons": {
+            "type": "bool",
+            "name": "Remove GD Controller Hints",
+            "default": true,
+            "requires-restart": true
+        },
         "other-force-state": {
             "type": "string",
             "name": "Controller Detection",

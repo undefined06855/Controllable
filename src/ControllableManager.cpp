@@ -22,6 +22,7 @@ cl::Manager& cl::Manager::get() {
 }
 
 void cl::Manager::init() {
+    // note: this will be called multiple times if multiple settings are changed
     geode::listenForAllSettingChanges([this](std::shared_ptr<geode::SettingV3>){
         if (m_settingsChangedThisFrame) return;
 
@@ -31,7 +32,7 @@ void cl::Manager::init() {
 
     updateSettings();
 
-    cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
+    cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, -999999, false);
     g_controller.update();
 }
 
@@ -64,6 +65,7 @@ void cl::Manager::updateSettings() {
         { "Force Using Controller", ControllerDetectionType::ForceController },
     };
 
+    m_otherRemoveGDIcons = GET_SETTING(bool, "other-remove-gd-icons");
     m_otherForceState = detectionMap.at(GET_SETTING(std::string, "other-force-state"));
     m_otherDebug = GET_SETTING(bool, "other-debug");
 
@@ -122,6 +124,12 @@ void cl::Manager::createShaders() {
 void cl::Manager::update(float dt) {
     g_controller.update();
     m_settingsChangedThisFrame = false;
+
+    // idk when it updates this and i dont really care
+    if (m_otherRemoveGDIcons) {
+        cocos2d::CCApplication::get()->m_pControllerHandler->m_controllerConnected = false;
+        cocos2d::CCApplication::get()->m_pController2Handler->m_controllerConnected = false;
+    }
 
     if (!cocos2d::CCScene::get()) return;
 

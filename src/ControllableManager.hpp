@@ -24,6 +24,7 @@ public:
     float m_controllerJoystickDeadzone;
 
     // other settings
+    bool m_otherRemoveGDIcons;
     ControllerDetectionType m_otherForceState;
     bool m_otherDebug;
 
