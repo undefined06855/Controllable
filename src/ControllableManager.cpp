@@ -32,7 +32,7 @@ void cl::Manager::init() {
 
     updateSettings();
 
-    cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, -999999, false);
+    cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
     g_controller.update();
 }
 
