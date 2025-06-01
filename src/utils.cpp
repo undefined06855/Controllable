@@ -622,12 +622,13 @@ geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* 
 cocos2d::CCNode* cl::utils::findNavArrow(NavigationArrowType type) {
     auto buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
 
-    static constexpr std::array<std::string_view, 5> arrowButtonNames = {
+    static constexpr std::array<std::string_view, 6> arrowButtonNames = {
         "controllerBtn_DPad_Left_001.png",
         "controllerBtn_DPad_Right_001.png",
         "GJ_arrow_01_001.png",
         "GJ_arrow_02_001.png",
-        "GJ_arrow_03_001.png"
+        "GJ_arrow_03_001.png",
+        "navArrowBtn_001.png"
     };
 
     for (auto button : buttons) {
@@ -644,6 +645,7 @@ cocos2d::CCNode* cl::utils::findNavArrow(NavigationArrowType type) {
                 bool isFindingRight = type == NavigationArrowType::Right;
                 bool isButtonRight = sprite->isFlipX();
                 if (frameName == "controllerBtn_DPad_Right_001.png") isButtonRight = !isButtonRight;
+                if (frameName == "navArrowBtn_001.png") isButtonRight = !isButtonRight;
                 if (isFindingRight != isButtonRight) continue;
 
                 // correct button now, is this potentially a back button?
