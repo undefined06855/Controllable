@@ -367,13 +367,26 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     };
 
     static const std::unordered_map<std::string_view, int> buttonIDImportantness = {
-        { "level-button", 5 }, // levelselectlayer
+        // levelselectlayer
+        { "level-button", 5 },
         { "tower-button", 5 },
         { "secret-door-button", 5 },
 
         { "vaultkeeper-button", 5 }, // vaults
         { "enter-btn", 5 }, // the tower
         { "level-5001-button", 5 }, // the tower
+
+        // chests
+        { "chest2", 5 }, // page 1 middle
+        { "chest5", 5 }, // page 2 middle
+        { "chest8", 7 }, // page 3 middle
+        { "chest7", 6 }, // page 3 left
+        { "chest9", 5 }, // page 3 right
+        { "chest10", 5 }, // gold chest
+        { "scratch-shop", 5 },
+
+        // betterinfo page
+        { "cvolton.betterinfo/featured-button", 5 }
     };
 
     for (auto button : buttons) {
@@ -799,11 +812,11 @@ bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
     }
 
     // mods that have persistent layers with buttons but dont use persistent nodes
-    static constexpr std::array<std::string_view, 3> ids = {
+    static constexpr std::array<std::string_view, 4> ids = {
         "itzkiba.better_progression/tier-popup",
         "thesillydoggo.qolmod/QOLModButton",
         "dankmeme.globed2/notification-panel",
-        // "hjfod.quick-volume-controls/overlay",
+        "hjfod.quick-volume-controls/overlay"
     };
 
     return std::find(ids.begin(), ids.end(), std::string_view(child->getID())) != ids.end();
@@ -868,12 +881,17 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
 
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) return true;
 
+    auto id = std::string_view(node->getID());
+
     // secret door but invisible - need to show it
-    if (std::string_view(node->getID()) == "secret-door-button") {
+    if (id == "secret-door-button") {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCNodeRGBA*>(node->getChildByID("secret-door-sprite"))) {
             if (cast->getOpacity() == 0) return true;
         }
     }
+
+    // the tower
+    if (id == "enter-btn") return true;
     
     // and check user object
     if (node->getUserObject("force-legacy-selection"_spr)) return true;
