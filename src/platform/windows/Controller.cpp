@@ -14,7 +14,7 @@ void Controller::update() {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
 
-    XINPUT_STATE state;
+    XINPUT_STATE state = {};
     _XInputGetState(0, &state); // TODO: multiple players?
 
     m_state.m_buttonA = state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
