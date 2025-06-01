@@ -25,8 +25,6 @@ bool HookedMenuLayer::init() {
 
     // fixes an issue where navigating down from the main play button would
     // focus the newgrounds button since its slightly larger
-
-    // menulayer ids provided by geode - no node ids dep needed
     auto bottomMenu = getChildByID("bottom-menu");
     if (!bottomMenu) return true;
 
