@@ -1,5 +1,6 @@
 #include "../../Controller.hpp"
 #include "../../ControllableManager.hpp"
+#include "../../globals.hpp"
 #include "xinput.hpp"
 
 Controller g_controller;
@@ -7,7 +8,8 @@ Controller g_controller;
 Controller::Controller()
     : m_state({})
     , m_lastDirection(GamepadDirection::None)
-    , m_lastGamepadButton(GamepadButton::None) {}
+    , m_lastGamepadButton(GamepadButton::None)
+    , m_connected(false) {}
 
 // should be called once all input processing this frame is done
 void Controller::update() {
@@ -15,7 +17,20 @@ void Controller::update() {
     m_lastGamepadButton = gamepadButtonPressed();
 
     XINPUT_STATE state = {};
-    _XInputGetState(0, &state); // TODO: multiple players?
+    auto ret = _XInputGetState(0, &state); // TODO: multiple players?
+
+    if (ret == ERROR_DEVICE_NOT_CONNECTED) {
+        m_connected = false;
+        g_isUsingController = false;
+        return;
+    }
+
+    if (!m_connected) {
+        // just connected controller
+        g_isUsingController = true;
+    }
+
+    m_connected = true;
 
     m_state.m_buttonA = state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
     m_state.m_buttonB = state.Gamepad.wButtons & XINPUT_GAMEPAD_B;

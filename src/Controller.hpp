@@ -19,6 +19,7 @@ public:
     ControllerState m_state;
     GamepadDirection m_lastDirection;
     GamepadButton m_lastGamepadButton;
+    bool m_connected;
 
     void update();
 

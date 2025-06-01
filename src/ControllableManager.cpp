@@ -32,6 +32,7 @@ void cl::Manager::init() {
     updateSettings();
 
     cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
+    g_controller.update();
 }
 
 #define GET_SETTING(type, name) mod->getSettingValue<type>(name)
