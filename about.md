@@ -11,7 +11,8 @@ main level list
 - Proper right joystick scrolling through scrollable lists, including modded
 scrollable layers
 - Proper text input support, as well as general text input bugfixes, allowing
-you to deselect vanilla text inputs like modded text inputs
+you to deselect vanilla text inputs like modded text inputs, though this mod
+does not include an on-screen keyboard
 - Extended support for Custom Keybinds, while leaving it optional if you do not
 have it installed
 - Extra support for modded UI for maximum ease-of-use!
