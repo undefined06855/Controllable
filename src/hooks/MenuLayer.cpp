@@ -5,8 +5,6 @@
 bool HookedMenuLayer::init() {
     if (!MenuLayer::init()) return false;
 
-    g_startCKCallback = true;
-
     showShaderWarning();
     adjustNGButton();
 
