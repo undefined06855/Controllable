@@ -823,6 +823,7 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
 
     auto id = std::string_view(node->getID());
     if (id == "level-button") return true;
+    if (id == "hide-button") return true;
 
     // sliderthumbs look a bit ass
     // TODO: fix the half transparency compressed mess it has going on
