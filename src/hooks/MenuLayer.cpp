@@ -2,16 +2,15 @@
 #include "../ControllableManager.hpp"
 
 bool HookedMenuLayer::init() {
-    // set controller connected to false to remove gd icons
-    auto application = cocos2d::CCApplication::get();
-    if (cl::Manager::get().m_otherRemoveGDIcons) {
-        application->m_pControllerHandler->m_controllerConnected = false;
-        application->m_pController2Handler->m_controllerConnected = false;
-        application->m_bControllerConnected = false;
-    }
-
     if (!MenuLayer::init()) return false;
 
+    showShaderWarning();
+    adjustNGButton();
+
+    return true;
+}
+
+void HookedMenuLayer::showShaderWarning() {
     // show warning if shaders failed and set to non legacy
     if (cl::Manager::get().m_failedToLoadShader
      && cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Shader) {
@@ -30,16 +29,16 @@ bool HookedMenuLayer::init() {
 
         geode::Mod::get()->setSettingValue<std::string>("selection-outline-type", "Legacy");
     }
+}
 
+void HookedMenuLayer::adjustNGButton() {
     // fixes an issue where navigating down from the main play button would
     // focus the newgrounds button since its slightly larger
     auto bottomMenu = getChildByID("bottom-menu");
-    if (!bottomMenu) return true;
+    if (!bottomMenu) return;
 
     auto ngButton = bottomMenu->getChildByID("newgrounds-button");
-    if (!ngButton) return true;
+    if (!ngButton) return;
 
     ngButton->setContentSize({ 50.5f, 53.75f });
-
-    return true;
 }

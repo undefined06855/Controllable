@@ -124,13 +124,23 @@ void cl::Manager::createShaders() {
 void cl::Manager::update(float dt) {
     g_controller.update();
     m_settingsChangedThisFrame = false;
-
-    // would set it just to false to remove all gd controller handling but that
-    // fucks over customkeybinds so i cant :broken_heart:
+    
     auto application = cocos2d::CCApplication::get();
     application->m_pControllerHandler->m_controllerConnected = g_controller.m_connected;
     application->m_pController2Handler->m_controllerConnected = false;
     application->m_bControllerConnected = g_controller.m_connected;
+    
+    // call ck callback if needed
+    if (g_ckCallback && cocos2d::CCScene::get()) {
+        (g_ckTarget->*g_ckCallback)(dt);
+    }
+
+    // tell gd no controller connected to prevent ui showing up
+    if (m_otherRemoveGDIcons) {
+        application->m_pControllerHandler->m_controllerConnected = false;
+        application->m_pController2Handler->m_controllerConnected = false;
+        application->m_bControllerConnected = false;
+    }
 
     if (!cocos2d::CCScene::get()) return;
 

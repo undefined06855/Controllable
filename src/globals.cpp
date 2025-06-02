@@ -8,3 +8,6 @@ bool g_isEditingText = false;
 bool g_isUsingController = false;
 
 DebugInformation g_debugInformation = {};
+
+cocos2d::SEL_SCHEDULE g_ckCallback = nullptr;
+cocos2d::CCObject* g_ckTarget = nullptr;
