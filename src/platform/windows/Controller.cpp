@@ -43,16 +43,19 @@ void Controller::update() {
     m_state.m_buttonL = state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
     m_state.m_buttonR = state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
 
-    m_state.m_buttonUp = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
-    m_state.m_buttonDown = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-    m_state.m_buttonLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-    m_state.m_buttonRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-
     // 0 to 255
     byte triggerDeadzone = 255 * cl::Manager::get().m_controllerTriggerDeadzone;
     m_state.m_buttonZL = state.Gamepad.bLeftTrigger > triggerDeadzone;
     m_state.m_buttonZR = state.Gamepad.bRightTrigger > triggerDeadzone;
 
+    m_state.m_buttonUp = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+    m_state.m_buttonDown = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+    m_state.m_buttonLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+    m_state.m_buttonRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+
+    m_state.m_joyLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
+    m_state.m_joyRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
+    
     m_state.m_joyLeftX = state.Gamepad.sThumbLX / 32767.f;
     m_state.m_joyLeftY = state.Gamepad.sThumbLY / 32767.f;
     m_state.m_joyRightX = state.Gamepad.sThumbRX / 32767.f;
@@ -119,6 +122,8 @@ GamepadButton Controller::gamepadButtonPressed() {
     if (m_state.m_buttonDown) return GamepadButton::Down;
     if (m_state.m_buttonLeft) return GamepadButton::Left;
     if (m_state.m_buttonRight) return GamepadButton::Right;
+    if (m_state.m_joyLeft) return GamepadButton::JoyLeft;
+    if (m_state.m_joyRight) return GamepadButton::JoyRight;
 
     return GamepadButton::None;
 }

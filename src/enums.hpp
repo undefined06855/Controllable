@@ -19,6 +19,7 @@ enum class GamepadButton {
     Start, Select,
     L, R, ZL, ZR,
     Up, Down, Left, Right, // d-pad NOT joystick
+    JoyLeft, JoyRight
 };
 
 

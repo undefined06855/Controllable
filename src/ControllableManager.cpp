@@ -569,6 +569,9 @@ void cl::Manager::fallbackToGD(GamepadButton button, GamepadDirection direction,
         CONTROLLER_CASE(GamepadButton::Down, CONTROLLER_Down)
         CONTROLLER_CASE(GamepadButton::Left, CONTROLLER_Left)
         CONTROLLER_CASE(GamepadButton::Right, CONTROLLER_Right)
+        // cocos doesnt support pressing down the joysticks this is so sad
+        CONTROLLER_CASE(GamepadButton::JoyLeft, KEY_None)
+        CONTROLLER_CASE(GamepadButton::JoyRight, KEY_None)
         case GamepadButton::None: break;
     }
 
