@@ -16,21 +16,17 @@ endif()
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp
-    src/hooks/*.cpp
-    src/hooks/compat/*.cpp
+    src/hooks/**.cpp
 )
 file(GLOB_RECURSE WINSOURCES
-    src/platform/windows/*.cpp
-    src/platform/windows/hooks/*.cpp
+    src/platform/windows/**.cpp
 )
 file(GLOB_RECURSE MACSOURCES
-    src/platform/macos/*.cpp
-    src/platform/macos/*.mm
-    src/platform/macos/hooks/*.cpp
+    src/platform/macos/**.cpp
+    src/platform/macos/**.mm
 )
 file(GLOB_RECURSE ANDROIDSOURCES
-    src/platform/android/*.cpp
-    src/platform/android/hooks/*.cpp
+    src/platform/android/**.cpp
 )
 
 if (WIN32)

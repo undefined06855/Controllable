@@ -9,10 +9,10 @@ You can give your custom nodes these user objects if Controllable doesn't, or
 you want them to be focusable or to act as a button, but most likely it will
 not do anything and make a bunch of warnings pop up in the console.
 
-It is recommended to set `force-shadowed-selection`, `force-legacy-selection`
-and `requires-selected-before-unselected` on your sprites and nodes that may
-need it, as those are guaranteed to work with no issue, and will help the mod
-decide how to draw the outline for those nodes!
+It is recommended to set `force-shadowed-selection`, `force-legacy-selection`,
+`requires-selected-before-unselected` and `is-not-focusable` on your sprites and
+nodes that may need it, as those are guaranteed to work with no issue, and will
+help the mod decide how to draw the outline or focus those nodes!
 
 Note that all of these are prefixed with the mod id,
 `undefined06855.controllable/`.
@@ -20,6 +20,10 @@ Note that all of these are prefixed with the mod id,
 - `is-focusable`
     - Marks that the node is focusable
     - Set on `CCMenuItem`, `CCTextInputNode` and `DialogLayer`
+
+- `should-not-focus`
+    - Marks that the button should not be focusable
+    - Not set on any nodes by default
 
 - `is-button`
     - Marks that the node should be treated as a button and will be assumed to 

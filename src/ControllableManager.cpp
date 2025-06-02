@@ -125,11 +125,12 @@ void cl::Manager::update(float dt) {
     g_controller.update();
     m_settingsChangedThisFrame = false;
 
-    // idk when it updates this and i dont really care
-    if (m_otherRemoveGDIcons) {
-        cocos2d::CCApplication::get()->m_pControllerHandler->m_controllerConnected = false;
-        cocos2d::CCApplication::get()->m_pController2Handler->m_controllerConnected = false;
-    }
+    // would set it just to false to remove all gd controller handling but that
+    // fucks over customkeybinds so i cant :broken_heart:
+    auto application = cocos2d::CCApplication::get();
+    application->m_pControllerHandler->m_controllerConnected = g_controller.m_connected;
+    application->m_pController2Handler->m_controllerConnected = false;
+    application->m_bControllerConnected = g_controller.m_connected;
 
     if (!cocos2d::CCScene::get()) return;
 
@@ -138,7 +139,7 @@ void cl::Manager::update(float dt) {
     // TODO: android support???
 
     // force reset if the button goes offscreen or we are transitioning
-    if (cl::utils::isNodeOffscreen(g_button) || cocos2d::CCDirector::get()->getIsTransitioning()) {
+    if (!cl::utils::canFocus(g_button, true) || cocos2d::CCDirector::get()->getIsTransitioning()) {
         cl::utils::clearCurrentButton();
     }
 
@@ -303,12 +304,7 @@ void cl::Manager::pressDirection(GamepadDirection direction) {
                 .m_from = cl::utils::getNodeBoundingBox(g_button),
                 .m_to = cl::utils::getNodeBoundingBox(button)
             };
-            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             cl::utils::setCurrentButton(button);
-            // select button if we're currently holding A
-            if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
-                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
-            }
             return;
         }
     }
@@ -545,7 +541,7 @@ void cl::Manager::depressButton(GamepadButton button) {
 #define CONTROLLER_CASE(gamepadBtn, cocosBtn) \
     case gamepadBtn: \
         cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, down, false); \
-        return;
+        break;
 
 void cl::Manager::fallbackToGD(GamepadButton button, GamepadDirection direction, bool down) {
     switch (button) {

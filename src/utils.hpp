@@ -16,6 +16,8 @@ GamepadButton directionToButton(GamepadDirection direction);
 Direction simplifyGamepadDirection(GamepadDirection direction);
 bool directionIsSecondaryJoystick(GamepadDirection direction);
 
+bool canFocus(cocos2d::CCNode* node, bool doOffscreenChecks);
+
 bool isPlayingLevel();
 bool isKeybindPopupOpen();
 
@@ -25,7 +27,6 @@ bool isNodeClipped(cocos2d::CCNode* node);
 template <class T>
 T findParentOfType(cocos2d::CCNode* node);
 
-std::string getNodeClassName(cocos2d::CCNode* node);
 geode::Result<std::string> getSpriteNodeFrameName(cocos2d::CCSprite* sprite);
 
 cocos2d::CCNode* findNavArrow(NavigationArrowType type);

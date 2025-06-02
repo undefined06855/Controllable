@@ -3,19 +3,12 @@
 #include "enums.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
+#include <alphalaneous.alphas_geode_utils/include/Utils.h>
 
 void cl::utils::clearCurrentButton() {
     if (!g_button) return;
 
-    // deselect old button if we're in hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
-     && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
-        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
-            cast->unselected();
-        } else {
-            geode::log::warn("Was deselecting button but not focused on a CCMenuItem!");
-        }
-    }
+    cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
 
     g_button = nullptr;
 }
@@ -27,14 +20,9 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
 
     g_button = node;
 
-    // deselect the button if we're in hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
-     && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
-        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
-            cast->unselected();
-        } else {
-            geode::log::warn("Was selecting button but not focused on a CCMenuItem!");
-        }
+    // select the button if we're in hover selection type
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) {
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
     }
 
     // start hovering button if we're pressing A
@@ -115,22 +103,8 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     std::vector<cocos2d::CCNode*> ret = {};
 
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
-        if (
-            child->getUserObject("is-focusable"_spr)
-            && (doOffscreenChecks ? !cl::utils::isNodeOffscreen(child) : true)
-            && child->isVisible()
-        ) {
-            // note: dialog layers are handled specially above
-
-            // do node specific checks
-            auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(child);
-            auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(child);
-            if (
-                   (asButton && asButton->isEnabled())
-                || (asInput)
-            ) {
-                ret.push_back(child);
-            }
+        if (cl::utils::canFocus(child, doOffscreenChecks)) {
+            ret.push_back(child);
         }
 
         for (auto button : cl::utils::gatherAllButtons(child, false, doOffscreenChecks)) {
@@ -139,6 +113,28 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     }
 
     return ret;
+}
+
+bool cl::utils::canFocus(cocos2d::CCNode* node, bool doOffscreenChecks) {
+    if (!node) return false;
+    if (!node->isVisible()) return false;
+    if (!node->getUserObject("is-focusable"_spr)) return false;
+    if (node->getUserObject("should-not-focus"_spr)) return false;
+    if (doOffscreenChecks && cl::utils::isNodeOffscreen(node)) return false;
+
+    // node specific checks
+    auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node);
+    auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(node);
+    auto asDialogLayer = geode::cast::typeinfo_cast<DialogLayer*>(node);
+    if (
+           (asButton && asButton->isEnabled())
+        || (asInput)
+        || (asDialogLayer)
+    ) {
+        return true;
+    }
+
+    return false;
 }
 
 cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
@@ -520,7 +516,7 @@ bool cl::utils::isPlayingLevel() {
 
 bool cl::utils::isKeybindPopupOpen() {
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
-        auto nodeName = cl::utils::getNodeClassName(child);
+        auto nodeName = AlphaUtils::Cocos::getClassName(child);
 
         if (nodeName == "EnterBindLayer") {
             auto layer = static_cast<cocos2d::CCLayer*>(child->getChildren()->objectAtIndex(0));
@@ -587,26 +583,6 @@ T cl::utils::findParentOfType(cocos2d::CCNode* node) {
     if (auto cast = geode::cast::typeinfo_cast<T>(node)) return cast;
     else if (!node->getParent()) return nullptr;
     else return cl::utils::findParentOfType<T>(node->getParent());
-}
-
-std::string cl::utils::getNodeClassName(cocos2d::CCNode* node) {
-#ifdef GEODE_IS_WINDOWS
-    std::string_view nodeName = typeid(*node).name();
-    if (nodeName.starts_with("class ")) nodeName.remove_prefix(6);
-    if (nodeName.starts_with("struct ")) nodeName.remove_prefix(7);
-    return std::string(nodeName);
-#else
-    std::string nodeName;
-
-    int status = 0;
-    auto demangle = abi::__cxa_demangle(typeid(*node).name(), 0, 0, &status);
-    if (status == 0) {
-        ret = demangle;
-    }
-    free(demangle);
-
-    return nodeName;
-#endif
 }
 
 geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* sprite) {
@@ -796,7 +772,9 @@ bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
 // because we also need to return true for alerts that perhaps only inherit
 bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
     // if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) return true;
-    if (std::string_view(child->getID()) == "GJDropDownLayer") return true;
+    auto id = std::string_view(child->getID());
+    if (id == "GJDropDownLayer") return true;
+    if (id == "EndLevelLayer") return true;
     if (geode::cast::typeinfo_cast<FLAlertLayer*>(child)) return true;
     if (cl::utils::getFocusableNodeType(child) == FocusableNodeType::DialogLayer) return true;
     return false;

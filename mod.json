@@ -110,8 +110,7 @@
         "other-remove-gd-icons": {
             "type": "bool",
             "name": "Remove GD Controller Hints",
-            "default": true,
-            "requires-restart": true
+            "default": true
         },
         "other-force-state": {
             "type": "string",
