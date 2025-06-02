@@ -23,3 +23,5 @@ pants shader outline or a hover outline!
 This mod is still extremely new, and as such still has small bugs, mostly to do
 with checkboxes and buttons that change state when pressed. If you find any
 issues with the mod, please report them to the GitHub repository.
+Post-release plans are to fix togglers (checkboxes and buttons with two states),
+and to add Android and MacOS support!
