@@ -131,7 +131,7 @@ void cl::Manager::update(float dt) {
     application->m_bControllerConnected = g_controller.m_connected;
     
     // call ck callback if needed
-    if (g_ckCallback && cocos2d::CCScene::get() && g_startCKCallback) {
+    if (g_ckCallback && cocos2d::CCScene::get()) {
         (g_ckTarget->*g_ckCallback)(dt);
     }
 
