@@ -11,7 +11,7 @@ Controller::Controller()
     , m_lastGamepadButton(GamepadButton::None)
     , m_connected(false) {}
 
-// should be called once all input processing this frame is done
+// should be called before all input processing is done
 void Controller::update() {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
