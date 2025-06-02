@@ -1,8 +1,11 @@
 #include "MenuLayer.hpp"
 #include "../ControllableManager.hpp"
+#include "../globals.hpp"
 
 bool HookedMenuLayer::init() {
     if (!MenuLayer::init()) return false;
+
+    g_startCKCallback = true;
 
     showShaderWarning();
     adjustNGButton();

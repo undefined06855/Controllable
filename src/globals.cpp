@@ -11,3 +11,4 @@ DebugInformation g_debugInformation = {};
 
 cocos2d::SEL_SCHEDULE g_ckCallback = nullptr;
 cocos2d::CCObject* g_ckTarget = nullptr;
+bool g_startCKCallback = false;
