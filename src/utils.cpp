@@ -371,6 +371,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         { "vaultkeeper-button", 5 }, // vaults
         { "enter-btn", 5 }, // the tower
         { "level-5001-button", 5 }, // the tower
+        { "gauntlet-button-1", 5 }, // gauntlets
 
         // chests
         { "chest2", 5 }, // page 1 middle
