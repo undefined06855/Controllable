@@ -10,6 +10,10 @@ endif()
 
 project(Controllable VERSION 1.0.0)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DREMOVE_GJITEMICON)
+endif()
+
 file(GLOB_RECURSE SOURCES
     src/*.cpp
     src/hooks/*.cpp
