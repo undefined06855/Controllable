@@ -827,6 +827,10 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
     if (id == "level-button") return true;
     if (id == "hide-button") return true;
 
+    // chests in the rewards popup arent gjchestsprite
+    if (id == "left-chest") return true;
+    if (id == "right-chest") return true;
+
     // sliderthumbs look a bit ass
     // TODO: fix the half transparency compressed mess it has going on
     if (cl::utils::buttonIsActuallySliderThumb(node)) return true;
