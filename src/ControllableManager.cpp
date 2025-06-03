@@ -31,7 +31,7 @@ void cl::Manager::init() {
     updateSettings();
 
     cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
-    g_controller.update();
+    g_controller.update(0.f);
 }
 
 #define GET_SETTING(type, name) mod->getSettingValue<type>(name)
@@ -127,22 +127,26 @@ void cl::Manager::update(float dt) {
     g_controller.update(dt);
     m_settingsChangedThisFrame = false;
     
+#ifndef GEODE_IS_MOBILE
     auto application = cocos2d::CCApplication::get();
     application->m_pControllerHandler->m_controllerConnected = g_controller.m_connected;
     application->m_pController2Handler->m_controllerConnected = false;
     application->m_bControllerConnected = g_controller.m_connected;
-    
+#endif
+
     // call ck callback if needed
     if (g_ckCallback && cocos2d::CCScene::get()) {
         (g_ckTarget->*g_ckCallback)(dt);
     }
 
+#ifndef GEODE_IS_MOBILE
     // tell gd no controller connected to prevent ui showing up
     if (m_otherRemoveGDIcons) {
         application->m_pControllerHandler->m_controllerConnected = false;
         application->m_pController2Handler->m_controllerConnected = false;
         application->m_bControllerConnected = false;
     }
+#endif
 
     if (!cocos2d::CCScene::get()) return;
 
