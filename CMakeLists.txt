@@ -14,28 +14,29 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DREMOVE_GJITEMICON)
 endif()
 
-file(GLOB_RECURSE SOURCES
-    src/*.cpp
-    src/hooks/**.cpp
-)
-file(GLOB_RECURSE WINSOURCES
-    src/platform/windows/**.cpp
-)
-file(GLOB_RECURSE MACSOURCES
-    src/platform/macos/**.cpp
-    src/platform/macos/**.mm
-)
-file(GLOB_RECURSE ANDROIDSOURCES
-    src/platform/android/**.cpp
-)
-
 if (WIN32)
-    list(APPEND SOURCES ${WINSOURCES})
+    file(GLOB_RECURSE WIN_SOURCES src/platform/windows/**.cpp)
+    list(APPEND SOURCES ${WIN_SOURCES})
 elseif (APPLE)
-    list(APPEND SOURCES ${MACSOURCES})
+    file(GLOB_RECURSE MAC_SOURCES 
+        src/platform/macos/**.cpp
+        src/platform/macos/**.mm
+    )
+    list(APPEND SOURCES ${MAC_SOURCES})
 elseif (ANDROID)
-    list(APPEND SOURCES ${ANDROIDSOURCES})
+    file(GLOB_RECURSE ANDROID_SOURCES src/platform/android/**.cpp)
+    list(APPEND SOURCES ${ANDROID_SOURCES})
 endif()
+
+file(GLOB_RECURSE COMMON_SOURCES src/hooks/**.cpp)
+list(APPEND COMMON_SOURCES
+    # TODO: can i use globbing here??
+    src/ControllableManager.cpp
+    src/globals.cpp
+    src/shaders.cpp
+    src/utils.cpp
+)
+list(APPEND SOURCES ${COMMON_SOURCES})
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
