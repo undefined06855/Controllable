@@ -21,17 +21,27 @@ void Controller::update(float dt) {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
 
-    m_connected = true;
-    g_isUsingController = true;
-
     auto info = cocos2d::JniMethodInfo();
-    if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "getControllerState", "()Lcom/geode/launcher/GeometryDashActivity$Gamepad;")) {
+    if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "getControllerState", "(I)Lcom/geode/launcher/GeometryDashActivity$Gamepad;")) {
         geode::log::warn("Failed to get JNI method info!");
         return;
     }
     
-    auto object = info.env->CallStaticObjectMethod(info.classID, info.methodID);
+    auto object = info.env->CallStaticObjectMethod(info.classID, info.methodID, 0);
     info.env->DeleteLocalRef(info.classID);
+
+    if (!object) {
+        m_connected = false;
+        g_isUsingController = false;
+        return;
+    }
+
+    if (!m_connected) {
+        // just connected controller
+        g_isUsingController = true;
+    }
+
+    m_connected = true;
 
     auto gamepadClass = cocos2d::JniHelper::getClassID("com/geode/launcher/GeometryDashActivity$Gamepad");
 
@@ -62,12 +72,6 @@ void Controller::update(float dt) {
     m_vibrationTime -= dt;
     if (m_vibrationTime < 0.f) {
         m_vibrationTime = 0.f;
-        // XINPUT_VIBRATION vibration = {
-        //     .wLeftMotorSpeed = 0,
-        //     .wRightMotorSpeed = 0,
-        // };
-
-        // _XInputSetState(0, &vibration);
     }
 }
 
@@ -151,10 +155,15 @@ cocos2d::CCPoint Controller::getRightJoystick() {
 void Controller::vibrate(float duration, float left, float right) {
     m_vibrationTime = duration;
 
-    // XINPUT_VIBRATION vibration = {
-    //     .wLeftMotorSpeed = static_cast<unsigned short>(left * 65535),
-    //     .wRightMotorSpeed = static_cast<unsigned short>(right * 65535),
-    // };
+    // this doesnt actually work for my controller so its gone untested
+    // i hope this does actually work for somebody out there
+    
+    auto info = cocos2d::JniMethodInfo();
+    if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "setControllerVibration", "(IJII)V")) {
+        geode::log::warn("Failed to get JNI method info for vibration!");
+        return;
+    }
 
-    // _XInputSetState(0, &vibration);
+    info.env->CallStaticVoidMethod(info.classID, info.methodID, 0, (long)duration, left * 255, right * 255);
+    info.env->DeleteLocalRef(info.classID);
 }
