@@ -889,3 +889,10 @@ bool cl::utils::textInputIsFromGeode(cocos2d::CCNode* node) {
     if (geode::cast::typeinfo_cast<geode::TextInput*>(node->getParent())) return true;
     return false;
 }
+
+std::pair<cocos2d::CCPoint, cocos2d::CCPoint> getRectCorners(cocos2d::CCRect& rect) {
+    return {
+        { rect.getMinX(), rect.getMinY() },  
+        { rect.getMaxX(), rect.getMaxY() }  
+    };
+}

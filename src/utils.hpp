@@ -46,4 +46,6 @@ bool shouldForceUseLegacySelection(cocos2d::CCNode* node);
 
 bool textInputIsFromGeode(cocos2d::CCNode* node);
 
+std::pair<cocos2d::CCPoint, cocos2d::CCPoint> getRectCorners(cocos2d::CCRect& rect);
+
 }

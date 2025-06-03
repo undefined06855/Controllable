@@ -618,8 +618,10 @@ void cl::Manager::updateDrawNode() {
         auto rect = cl::utils::getNodeBoundingBox(g_button);
         auto col = m_selectionColor;
         auto thickness = m_selectionThickness / 4.f;
+        auto points = cl::utils::getRectCorners(rect);
         overlay->drawRect(
-            rect,
+            points.first,
+            points.second,
             { 0.f, 0.f, 0.f, 0.f },
             thickness,
             {
@@ -641,26 +643,31 @@ void cl::Manager::updateDrawNode() {
         if (m_otherDebug) {
             auto fillCol = rectColorMap.at(g_debugInformation.m_tryFocusRectType);
             fillCol.a = .01f;
+            auto rect = cl::utils::createTryFocusRect(
+                g_debugInformation.m_from,
+                g_debugInformation.m_tryFocusRectType,
+                g_debugInformation.m_tryFocusRectDirection
+            );
+            auto points = cl::utils::getRectCorners(rect);
             overlay->drawRect(
-                cl::utils::createTryFocusRect(
-                    g_debugInformation.m_from,
-                    g_debugInformation.m_tryFocusRectType,
-                    g_debugInformation.m_tryFocusRectDirection
-                ),
+                points.first,
+                points.second,
                 fillCol,
                 .1f,
                 rectColorMap.at(g_debugInformation.m_tryFocusRectType)
             );
 
             overlay->drawRect(
-                g_debugInformation.m_from,
+                cl::utils::getRectCorners(g_debugInformation.m_from).first,
+                cl::utils::getRectCorners(g_debugInformation.m_from).second,
                 { 0.f, 0.f, 0.f, 0.f },
                 .3f,
                 { 1.f, 0.f, 1.f, 1.f }
             );
 
             overlay->drawRect(
-                g_debugInformation.m_to,
+                cl::utils::getRectCorners(g_debugInformation.m_to).first,
+                cl::utils::getRectCorners(g_debugInformation.m_to).second,
                 { 0.f, 0.f, 0.f, 0.f },
                 .3f,
                 { .5f, .0f, .5f, 1.f }
@@ -672,8 +679,10 @@ void cl::Manager::updateDrawNode() {
                     (TryFocusRectType)i,
                     g_debugInformation.m_tryFocusRectDirection
                 );
+                auto points = cl::utils::getRectCorners(rect);
                 overlay->drawRect(
-                    rect,
+                    points.first,
+                    points.second,
                     { 0.f, 0.f, 0.f, 0.f },
                     .4f,
                     rectColorMap.at((TryFocusRectType)i)
