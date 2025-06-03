@@ -405,7 +405,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         auto text = button->getChildByType<ButtonSprite*>(0);
         if (text) {
             // lowercase the caption
-            auto caption = text->m_caption;
+            auto caption = std::string(text->m_caption);
             std::transform(caption.begin(), caption.end(), caption.begin(), [](auto c){ return std::tolower(c); });
 
             if (buttonSpriteImportantness.contains(caption)) {
