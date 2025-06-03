@@ -2,7 +2,6 @@
 #include "../../ControllableManager.hpp"
 #include "../../globals.hpp"
 #include <Geode/cocos/platform/android/jni/JniHelper.h>
-#include <jni.h>
 
 Controller g_controller;
 
