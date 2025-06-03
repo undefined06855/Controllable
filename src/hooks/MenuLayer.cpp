@@ -4,6 +4,13 @@
 bool HookedMenuLayer::init() {
     if (!MenuLayer::init()) return false;
 
+    showShaderWarning();
+    adjustNGButton();
+
+    return true;
+}
+
+void HookedMenuLayer::showShaderWarning() {
     // show warning if shaders failed and set to non legacy
     if (cl::Manager::get().m_failedToLoadShader
      && cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Shader) {
@@ -22,18 +29,16 @@ bool HookedMenuLayer::init() {
 
         geode::Mod::get()->setSettingValue<std::string>("selection-outline-type", "Legacy");
     }
+}
 
+void HookedMenuLayer::adjustNGButton() {
     // fixes an issue where navigating down from the main play button would
     // focus the newgrounds button since its slightly larger
-
-    // menulayer ids provided by geode - no node ids dep needed
     auto bottomMenu = getChildByID("bottom-menu");
-    if (!bottomMenu) return true;
+    if (!bottomMenu) return;
 
     auto ngButton = bottomMenu->getChildByID("newgrounds-button");
-    if (!ngButton) return true;
+    if (!ngButton) return;
 
     ngButton->setContentSize({ 50.5f, 53.75f });
-
-    return true;
 }

@@ -3,19 +3,12 @@
 #include "enums.hpp"
 #include "globals.hpp"
 #include "Controller.hpp"
+#include <alphalaneous.alphas_geode_utils/include/Utils.h>
 
 void cl::utils::clearCurrentButton() {
     if (!g_button) return;
 
-    // deselect old button if we're in hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
-     && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
-        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
-            cast->unselected();
-        } else {
-            geode::log::warn("Was deselecting button but not focused on a CCMenuItem!");
-        }
-    }
+    cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
 
     g_button = nullptr;
 }
@@ -28,18 +21,21 @@ void cl::utils::setCurrentButton(cocos2d::CCNode* node) {
     g_button = node;
 
     // select the button if we're in hover selection type
-    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover
-     && cl::utils::getFocusableNodeType(g_button) == FocusableNodeType::Button) {
-        if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(g_button.data())) {
-            cast->unselected();
-        } else {
-            geode::log::warn("Was selecting button but not focused on a CCMenuItem!");
-        }
+    if (cl::Manager::get().m_selectionOutlineType == SelectionOutlineType::Hover) {
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
     }
 
     // start hovering button if we're pressing A
     if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
         cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+    }
+
+    // if this is a link in an mdtextarea, call select and unselect to prevent
+    // some uninitialised member bs
+    // https://discord.com/channels/911701438269386882/911702535373475870/1378456881760305203
+    if (g_button->getUserObject("requires-selected-before-unselected"_spr)) {
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
+        cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
     }
 }
 
@@ -107,22 +103,8 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     std::vector<cocos2d::CCNode*> ret = {};
 
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
-        if (
-            child->getUserObject("is-focusable"_spr)
-            && (doOffscreenChecks ? !cl::utils::isNodeOffscreen(child) : true)
-            && child->isVisible()
-        ) {
-            // note: dialog layers are handled specially above
-
-            // do node specific checks
-            auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(child);
-            auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(child);
-            if (
-                   (asButton && asButton->isEnabled())
-                || (asInput)
-            ) {
-                ret.push_back(child);
-            }
+        if (cl::utils::canFocus(child, doOffscreenChecks)) {
+            ret.push_back(child);
         }
 
         for (auto button : cl::utils::gatherAllButtons(child, false, doOffscreenChecks)) {
@@ -131,6 +113,28 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
     }
 
     return ret;
+}
+
+bool cl::utils::canFocus(cocos2d::CCNode* node, bool doOffscreenChecks) {
+    if (!node) return false;
+    if (!node->isVisible()) return false;
+    if (!node->getUserObject("is-focusable"_spr)) return false;
+    if (node->getUserObject("should-not-focus"_spr)) return false;
+    if (doOffscreenChecks && cl::utils::isNodeOffscreen(node)) return false;
+
+    // node specific checks
+    auto asButton = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node);
+    auto asInput = geode::cast::typeinfo_cast<CCTextInputNode*>(node);
+    auto asDialogLayer = geode::cast::typeinfo_cast<DialogLayer*>(node);
+    if (
+           (asButton && asButton->isEnabled())
+        || (asInput)
+        || (asDialogLayer)
+    ) {
+        return true;
+    }
+
+    return false;
 }
 
 cocos2d::CCRect cl::utils::getNodeBoundingBox(cocos2d::CCNode* node) {
@@ -201,7 +205,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             break;
         case TryFocusRectType::Extreme:
             maximumJump = 40.f;
-            jumpOffset = -0.f;
+            jumpOffset = -10.f;
             break;
     }
 
@@ -341,6 +345,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         // levelcells
         { "view", 4 },
         { "get it", 4 },
+        { "get", 4 },
         { "update", 4 },
 
         // settings
@@ -348,6 +353,8 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         { "save", 4 },
         { "links", 4 },
         { "refresh login", 4 },
+        { "log in", 4 },
+        { "login", 4 },
         { "next", 4 },
 
         // most popups - negative button
@@ -357,13 +364,27 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     };
 
     static const std::unordered_map<std::string_view, int> buttonIDImportantness = {
-        { "level-button", 5 }, // levelselectlayer
+        // levelselectlayer
+        { "level-button", 5 },
         { "tower-button", 5 },
         { "secret-door-button", 5 },
 
         { "vaultkeeper-button", 5 }, // vaults
         { "enter-btn", 5 }, // the tower
         { "level-5001-button", 5 }, // the tower
+        { "gauntlet-button-1", 5 }, // gauntlets
+
+        // chests
+        { "chest2", 5 }, // page 1 middle
+        { "chest5", 5 }, // page 2 middle
+        { "chest8", 7 }, // page 3 middle
+        { "chest7", 6 }, // page 3 left
+        { "chest9", 5 }, // page 3 right
+        { "chest10", 5 }, // gold chest
+        { "scratch-shop", 5 },
+
+        // betterinfo page
+        { "cvolton.betterinfo/featured-button", 5 }
     };
 
     for (auto button : buttons) {
@@ -428,40 +449,6 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
     }
 
     return mostImportantButton;
-}
-
-GamepadButton cl::utils::directionToButton(GamepadDirection direction) {
-    switch (direction) {
-        case GamepadDirection::None:
-            return GamepadButton::None;
-
-        case GamepadDirection::Up:
-            return GamepadButton::Up;
-        case GamepadDirection::Down:
-            return GamepadButton::Down;
-        case GamepadDirection::Left:
-            return GamepadButton::Left;
-        case GamepadDirection::Right:
-            return GamepadButton::Right;
-
-        case GamepadDirection::JoyUp:
-            return GamepadButton::JoyUp;
-        case GamepadDirection::JoyDown:
-            return GamepadButton::JoyDown;
-        case GamepadDirection::JoyLeft:
-            return GamepadButton::JoyLeft;
-        case GamepadDirection::JoyRight:
-            return GamepadButton::JoyRight;
-
-        case GamepadDirection::SecondaryJoyUp:
-            return GamepadButton::SecondaryJoyUp;
-        case GamepadDirection::SecondaryJoyDown:
-            return GamepadButton::SecondaryJoyDown;
-        case GamepadDirection::SecondaryJoyLeft:
-            return GamepadButton::SecondaryJoyLeft;
-        case GamepadDirection::SecondaryJoyRight:
-            return GamepadButton::SecondaryJoyRight;
-    }
 }
 
 Direction cl::utils::simplifyGamepadDirection(GamepadDirection direction) {
@@ -531,7 +518,7 @@ bool cl::utils::isPlayingLevel() {
 
 bool cl::utils::isKeybindPopupOpen() {
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(cocos2d::CCScene::get()->getChildren())) {
-        auto nodeName = cl::utils::getNodeClassName(child);
+        auto nodeName = AlphaUtils::Cocos::getClassName(child);
 
         if (nodeName == "EnterBindLayer") {
             auto layer = static_cast<cocos2d::CCLayer*>(child->getChildren()->objectAtIndex(0));
@@ -600,26 +587,6 @@ T cl::utils::findParentOfType(cocos2d::CCNode* node) {
     else return cl::utils::findParentOfType<T>(node->getParent());
 }
 
-std::string cl::utils::getNodeClassName(cocos2d::CCNode* node) {
-#ifdef GEODE_IS_WINDOWS
-    std::string_view nodeName = typeid(*node).name();
-    if (nodeName.starts_with("class ")) nodeName.remove_prefix(6);
-    if (nodeName.starts_with("struct ")) nodeName.remove_prefix(7);
-    return std::string(nodeName);
-#else
-    std::string nodeName;
-
-    int status = 0;
-    auto demangle = abi::__cxa_demangle(typeid(*node).name(), 0, 0, &status);
-    if (status == 0) {
-        ret = demangle;
-    }
-    free(demangle);
-
-    return nodeName;
-#endif
-}
-
 geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* sprite) {
     std::string frameName = "";
     bool found = false;
@@ -646,12 +613,13 @@ geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* 
 cocos2d::CCNode* cl::utils::findNavArrow(NavigationArrowType type) {
     auto buttons = cl::utils::gatherAllButtons(cocos2d::CCScene::get());
 
-    static constexpr std::array<std::string_view, 5> arrowButtonNames = {
+    static constexpr std::array<std::string_view, 6> arrowButtonNames = {
         "controllerBtn_DPad_Left_001.png",
         "controllerBtn_DPad_Right_001.png",
         "GJ_arrow_01_001.png",
         "GJ_arrow_02_001.png",
-        "GJ_arrow_03_001.png"
+        "GJ_arrow_03_001.png",
+        "navArrowBtn_001.png"
     };
 
     for (auto button : buttons) {
@@ -668,6 +636,7 @@ cocos2d::CCNode* cl::utils::findNavArrow(NavigationArrowType type) {
                 bool isFindingRight = type == NavigationArrowType::Right;
                 bool isButtonRight = sprite->isFlipX();
                 if (frameName == "controllerBtn_DPad_Right_001.png") isButtonRight = !isButtonRight;
+                if (frameName == "navArrowBtn_001.png") isButtonRight = !isButtonRight;
                 if (isFindingRight != isButtonRight) continue;
 
                 // correct button now, is this potentially a back button?
@@ -805,7 +774,9 @@ bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
 // because we also need to return true for alerts that perhaps only inherit
 bool cl::utils::shouldTreatParentAsImportant(cocos2d::CCNode* child) {
     // if (geode::cast::typeinfo_cast<GJDropDownLayer*>(child)) return true;
-    if (std::string_view(child->getID()) == "GJDropDownLayer") return true;
+    auto id = std::string_view(child->getID());
+    if (id == "GJDropDownLayer") return true;
+    if (id == "EndLevelLayer") return true;
     if (geode::cast::typeinfo_cast<FLAlertLayer*>(child)) return true;
     if (cl::utils::getFocusableNodeType(child) == FocusableNodeType::DialogLayer) return true;
     return false;
@@ -821,11 +792,11 @@ bool cl::utils::shouldNotTreatAsPopup(cocos2d::CCNode* child) {
     }
 
     // mods that have persistent layers with buttons but dont use persistent nodes
-    static constexpr std::array<std::string_view, 3> ids = {
+    static constexpr std::array<std::string_view, 4> ids = {
         "itzkiba.better_progression/tier-popup",
         "thesillydoggo.qolmod/QOLModButton",
         "dankmeme.globed2/notification-panel",
-        // "hjfod.quick-volume-controls/overlay",
+        "hjfod.quick-volume-controls/overlay"
     };
 
     return std::find(ids.begin(), ids.end(), std::string_view(child->getID())) != ids.end();
@@ -854,12 +825,14 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
 
     auto id = std::string_view(node->getID());
     if (id == "level-button") return true;
+    if (id == "hide-button") return true;
 
     // sliderthumbs look a bit ass
     // TODO: fix the half transparency compressed mess it has going on
     if (cl::utils::buttonIsActuallySliderThumb(node)) return true;
 
-    // check user object (set on GeodeTabSprite)
+    // check user object
+    if (node->getUserObject("force-shadowed-selection"_spr)) return true;
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (child->getUserObject("force-shadowed-selection"_spr)) {
             return true;
@@ -872,11 +845,16 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
 bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
     if (!node) return false;
 
+    auto& manager = cl::Manager::get();
+
+    // if we have debug info force legacy
+    if (manager.m_otherDebug) return true;
+
     // if we're not using shader this shouldnt matter
-    if (cl::Manager::get().m_selectionOutlineType != SelectionOutlineType::Shader) return false;
+    if (manager.m_selectionOutlineType != SelectionOutlineType::Shader) return false;
 
     // if it failed to load the shader we should always use legacy
-    if (cl::Manager::get().m_failedToLoadShader) return true;
+    if (manager.m_failedToLoadShader) return true;
 
     // cctextinputnode's ccscale9sprite isnt connected to the actual input in
     // any way that i can easily check so i cant put this in the force include
@@ -884,14 +862,20 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
 
     if (cl::utils::getFocusableNodeType(node) == FocusableNodeType::TextInput) return true;
 
+    auto id = std::string_view(node->getID());
+
     // secret door but invisible - need to show it
-    if (std::string_view(node->getID()) == "secret-door-button") {
+    if (id == "secret-door-button") {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCNodeRGBA*>(node->getChildByID("secret-door-sprite"))) {
             if (cast->getOpacity() == 0) return true;
         }
     }
+
+    // the tower
+    if (id == "enter-btn") return true;
     
     // and check user object
+    if (node->getUserObject("force-legacy-selection"_spr)) return true;
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {
         if (child->getUserObject("force-legacy-selection"_spr)) {
             return true;
@@ -905,4 +889,11 @@ bool cl::utils::textInputIsFromGeode(cocos2d::CCNode* node) {
     if (!node->getParent()) return false;
     if (geode::cast::typeinfo_cast<geode::TextInput*>(node->getParent())) return true;
     return false;
+}
+
+std::pair<cocos2d::CCPoint, cocos2d::CCPoint> cl::utils::getRectCorners(cocos2d::CCRect& rect) {
+    return {
+        { rect.getMinX(), rect.getMinY() },  
+        { rect.getMaxX(), rect.getMaxY() }  
+    };
 }

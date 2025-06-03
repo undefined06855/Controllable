@@ -18,11 +18,8 @@ enum class GamepadButton {
     A, B, X, Y,
     Start, Select,
     L, R, ZL, ZR,
-    Up, Down, Left, Right, // note: these are for the d-pad
-
-    // these are for fallback
-    JoyUp, JoyDown, JoyLeft, JoyRight,
-    SecondaryJoyUp, SecondaryJoyDown, SecondaryJoyLeft, SecondaryJoyRight
+    Up, Down, Left, Right, // d-pad NOT joystick
+    JoyLeft, JoyRight
 };
 
 

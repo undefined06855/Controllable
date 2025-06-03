@@ -22,9 +22,8 @@ cl::Manager& cl::Manager::get() {
 }
 
 void cl::Manager::init() {
+    // note: this will be called multiple times if multiple settings are changed
     geode::listenForAllSettingChanges([this](std::shared_ptr<geode::SettingV3>){
-        if (m_settingsChangedThisFrame) return;
-
         updateSettings();
         m_settingsChangedThisFrame = true;
     });
@@ -32,6 +31,7 @@ void cl::Manager::init() {
     updateSettings();
 
     cocos2d::CCScheduler::get()->scheduleUpdateForTarget(this, 0, false);
+    g_controller.update();
 }
 
 #define GET_SETTING(type, name) mod->getSettingValue<type>(name)
@@ -63,8 +63,11 @@ void cl::Manager::updateSettings() {
         { "Force Using Controller", ControllerDetectionType::ForceController },
     };
 
+    m_otherRemoveGDIcons = GET_SETTING(bool, "other-remove-gd-icons");
     m_otherForceState = detectionMap.at(GET_SETTING(std::string, "other-force-state"));
     m_otherDebug = GET_SETTING(bool, "other-debug");
+
+    if (m_settingsChangedThisFrame) return;
 
     updateShaders();
 }
@@ -97,6 +100,8 @@ void cl::Manager::createShaders() {
     m_outlineShaderProgram = new cocos2d::CCGLProgram;
     bool ret = m_outlineShaderProgram->initWithVertexShaderByteArray(g_outlineShaderVertex, g_outlineShaderFragment);
     if (!ret) {
+        geode::log::warn("shader failed to load!!!");
+        geode::log::warn("{}", m_outlineShaderProgram->fragmentShaderLog());
         // geode::log::debug("{}", (cocos2d::CCObject*)(void*)0xb00b1e5);
         m_failedToLoadShader = true;
         return;
@@ -121,6 +126,23 @@ void cl::Manager::createShaders() {
 void cl::Manager::update(float dt) {
     g_controller.update(dt);
     m_settingsChangedThisFrame = false;
+    
+    auto application = cocos2d::CCApplication::get();
+    application->m_pControllerHandler->m_controllerConnected = g_controller.m_connected;
+    application->m_pController2Handler->m_controllerConnected = false;
+    application->m_bControllerConnected = g_controller.m_connected;
+    
+    // call ck callback if needed
+    if (g_ckCallback && cocos2d::CCScene::get()) {
+        (g_ckTarget->*g_ckCallback)(dt);
+    }
+
+    // tell gd no controller connected to prevent ui showing up
+    if (m_otherRemoveGDIcons) {
+        application->m_pControllerHandler->m_controllerConnected = false;
+        application->m_pController2Handler->m_controllerConnected = false;
+        application->m_bControllerConnected = false;
+    }
 
     if (!cocos2d::CCScene::get()) return;
 
@@ -129,7 +151,7 @@ void cl::Manager::update(float dt) {
     // TODO: android support???
 
     // force reset if the button goes offscreen or we are transitioning
-    if (cl::utils::isNodeOffscreen(g_button) || cocos2d::CCDirector::get()->getIsTransitioning()) {
+    if (!cl::utils::canFocus(g_button, true) || cocos2d::CCDirector::get()->getIsTransitioning()) {
         cl::utils::clearCurrentButton();
     }
 
@@ -239,7 +261,11 @@ void cl::Manager::update(float dt) {
     // general direction and button inputs
     // these should be called while in a level to allow them to fallthrough
     if (directionPressed != GamepadDirection::None) {
-        focusInDirection(directionPressed);
+        pressDirection(directionPressed);
+    }
+
+    if (directionReleased != GamepadDirection::None) {
+        depressDirection(directionReleased);
     }
 
     if (buttonPressed != GamepadButton::None) {
@@ -253,18 +279,13 @@ void cl::Manager::update(float dt) {
     updateDrawNode();
 }
 
-void cl::Manager::focusInDirection(GamepadDirection direction) {
+void cl::Manager::pressDirection(GamepadDirection direction) {
     if (
         cl::utils::isPlayingLevel()
         || cl::utils::isKeybindPopupOpen()
         || cl::utils::directionIsSecondaryJoystick(direction)
     ) {
-        // not the best if people have a "hold" keybind mapped to d-pad/joystick
-        // (such as Rewind) but there's not really a nicer way to do this
-        // without treating directions as buttons and holding and releasing and
-        // all that mess
-        pressButton(cl::utils::directionToButton(direction));
-        depressButton(cl::utils::directionToButton(direction));
+        fallbackToGD(GamepadButton::None, direction, true);
         return;
     }
 
@@ -295,14 +316,20 @@ void cl::Manager::focusInDirection(GamepadDirection direction) {
                 .m_from = cl::utils::getNodeBoundingBox(g_button),
                 .m_to = cl::utils::getNodeBoundingBox(button)
             };
-            cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
             cl::utils::setCurrentButton(button);
-            // select button if we're currently holding A
-            if (g_controller.gamepadButtonPressed() == GamepadButton::A) {
-                cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Select);
-            }
             return;
         }
+    }
+}
+
+// this only exists for the fallback
+void cl::Manager::depressDirection(GamepadDirection direction) {
+    if (
+        cl::utils::isPlayingLevel()
+        || cl::utils::isKeybindPopupOpen()
+        || cl::utils::directionIsSecondaryJoystick(direction)
+    ) {
+        fallbackToGD(GamepadButton::None, direction, false);
     }
 }
 
@@ -435,44 +462,12 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
     return closestButton;
 }
 
-#define CONTROLLER_CASE(gamepadBtn, cocosBtn, press) \
-    case GamepadButton::gamepadBtn: \
-        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, press, false); \
-        break;
-
 void cl::Manager::pressButton(GamepadButton button) {
     if (LevelEditorLayer::get()) return;
 
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         // forward to cckeyboarddispatcher for gd built in handling
-        switch (button) {
-            CONTROLLER_CASE(A, CONTROLLER_A, true)
-            CONTROLLER_CASE(B, CONTROLLER_B, true)
-            CONTROLLER_CASE(X, CONTROLLER_X, true)
-            CONTROLLER_CASE(Y, CONTROLLER_Y, true)
-            CONTROLLER_CASE(Start, CONTROLLER_Start, true)
-            CONTROLLER_CASE(Select, CONTROLLER_Back, true)
-            CONTROLLER_CASE(L, CONTROLLER_LB, true)
-            CONTROLLER_CASE(R, CONTROLLER_RB, true)
-            CONTROLLER_CASE(ZL, CONTROLLER_LT, true)
-            CONTROLLER_CASE(ZR, CONTROLLER_RT, true)
-            CONTROLLER_CASE(Up, CONTROLLER_Up, true)
-            CONTROLLER_CASE(Down, CONTROLLER_Down, true)
-            CONTROLLER_CASE(Left, CONTROLLER_Left, true)
-            CONTROLLER_CASE(Right, CONTROLLER_Right, true)
-
-            // only used in fallback
-            CONTROLLER_CASE(JoyUp, CONTROLLER_LTHUMBSTICK_UP, true)
-            CONTROLLER_CASE(JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, true)
-            CONTROLLER_CASE(JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, true)
-            CONTROLLER_CASE(JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, true)
-            CONTROLLER_CASE(SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, true)
-            CONTROLLER_CASE(SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, true)
-            CONTROLLER_CASE(SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, true)
-            CONTROLLER_CASE(SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, true)
-            case GamepadButton::None: break;
-        }
-
+        fallbackToGD(button, GamepadDirection::None, true);
         return;
     }
 
@@ -495,33 +490,7 @@ void cl::Manager::depressButton(GamepadButton button) {
     // check
     // robtop does all the controller keybind stuff either on key down or in
     // that ccapplication function i removed idk i cant be bothered to check
-    switch (button) {
-        CONTROLLER_CASE(A, CONTROLLER_A, false)
-        CONTROLLER_CASE(B, CONTROLLER_B, false)
-        CONTROLLER_CASE(X, CONTROLLER_X, false)
-        CONTROLLER_CASE(Y, CONTROLLER_Y, false)
-        CONTROLLER_CASE(Start, CONTROLLER_Start, false)
-        CONTROLLER_CASE(Select, CONTROLLER_Back, false)
-        CONTROLLER_CASE(L, CONTROLLER_LB, false)
-        CONTROLLER_CASE(R, CONTROLLER_RB, false)
-        CONTROLLER_CASE(ZL, CONTROLLER_LT, false)
-        CONTROLLER_CASE(ZR, CONTROLLER_RT, false)
-        CONTROLLER_CASE(Up, CONTROLLER_Up, false)
-        CONTROLLER_CASE(Down, CONTROLLER_Down, false)
-        CONTROLLER_CASE(Left, CONTROLLER_Left, false)
-        CONTROLLER_CASE(Right, CONTROLLER_Right, false)
-
-        // only used in fallback
-        CONTROLLER_CASE(JoyUp, CONTROLLER_LTHUMBSTICK_UP, false)
-        CONTROLLER_CASE(JoyDown, CONTROLLER_LTHUMBSTICK_DOWN, false)
-        CONTROLLER_CASE(JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT, false)
-        CONTROLLER_CASE(JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT, false)
-        CONTROLLER_CASE(SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP, false)
-        CONTROLLER_CASE(SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN, false)
-        CONTROLLER_CASE(SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT, false)
-        CONTROLLER_CASE(SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT, false)
-        case GamepadButton::None: break;
-    }
+    fallbackToGD(button, GamepadDirection::None, false);
 
     // only use fallback if we're playing level etc
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
@@ -581,6 +550,50 @@ void cl::Manager::depressButton(GamepadButton button) {
     }
 }
 
+#define CONTROLLER_CASE(gamepadBtn, cocosBtn) \
+    case gamepadBtn: \
+        cocos2d::CCKeyboardDispatcher::get()->dispatchKeyboardMSG(cocos2d::enumKeyCodes::cocosBtn, down, false); \
+        break;
+
+void cl::Manager::fallbackToGD(GamepadButton button, GamepadDirection direction, bool down) {
+    switch (button) {
+        CONTROLLER_CASE(GamepadButton::A, CONTROLLER_A)
+        CONTROLLER_CASE(GamepadButton::B, CONTROLLER_B)
+        CONTROLLER_CASE(GamepadButton::X, CONTROLLER_X)
+        CONTROLLER_CASE(GamepadButton::Y, CONTROLLER_Y)
+        CONTROLLER_CASE(GamepadButton::Start, CONTROLLER_Start)
+        CONTROLLER_CASE(GamepadButton::Select, CONTROLLER_Back)
+        CONTROLLER_CASE(GamepadButton::L, CONTROLLER_LB)
+        CONTROLLER_CASE(GamepadButton::R, CONTROLLER_RB)
+        CONTROLLER_CASE(GamepadButton::ZL, CONTROLLER_LT)
+        CONTROLLER_CASE(GamepadButton::ZR, CONTROLLER_RT)
+        CONTROLLER_CASE(GamepadButton::Up, CONTROLLER_Up)
+        CONTROLLER_CASE(GamepadButton::Down, CONTROLLER_Down)
+        CONTROLLER_CASE(GamepadButton::Left, CONTROLLER_Left)
+        CONTROLLER_CASE(GamepadButton::Right, CONTROLLER_Right)
+        // cocos doesnt support pressing down the joysticks this is so sad
+        CONTROLLER_CASE(GamepadButton::JoyLeft, KEY_None)
+        CONTROLLER_CASE(GamepadButton::JoyRight, KEY_None)
+        case GamepadButton::None: break;
+    }
+
+    switch (direction) {
+        CONTROLLER_CASE(GamepadDirection::Up, CONTROLLER_Up)
+        CONTROLLER_CASE(GamepadDirection::Down, CONTROLLER_Down)
+        CONTROLLER_CASE(GamepadDirection::Left, CONTROLLER_Left)
+        CONTROLLER_CASE(GamepadDirection::Right, CONTROLLER_Right)
+        CONTROLLER_CASE(GamepadDirection::JoyUp, CONTROLLER_LTHUMBSTICK_UP)
+        CONTROLLER_CASE(GamepadDirection::JoyDown, CONTROLLER_LTHUMBSTICK_DOWN)
+        CONTROLLER_CASE(GamepadDirection::JoyLeft, CONTROLLER_LTHUMBSTICK_LEFT)
+        CONTROLLER_CASE(GamepadDirection::JoyRight, CONTROLLER_LTHUMBSTICK_RIGHT)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyUp, CONTROLLER_RTHUMBSTICK_UP)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyDown, CONTROLLER_RTHUMBSTICK_DOWN)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyLeft, CONTROLLER_RTHUMBSTICK_LEFT)
+        CONTROLLER_CASE(GamepadDirection::SecondaryJoyRight, CONTROLLER_RTHUMBSTICK_RIGHT)
+        case GamepadDirection::None: break;
+    }
+}
+
 #undef CONTROLLER_CASE
 
 void cl::Manager::updateDrawNode() {
@@ -607,8 +620,10 @@ void cl::Manager::updateDrawNode() {
         auto rect = cl::utils::getNodeBoundingBox(g_button);
         auto col = m_selectionColor;
         auto thickness = m_selectionThickness / 4.f;
+        auto points = cl::utils::getRectCorners(rect);
         overlay->drawRect(
-            rect,
+            points.first,
+            points.second,
             { 0.f, 0.f, 0.f, 0.f },
             thickness,
             {
@@ -630,26 +645,31 @@ void cl::Manager::updateDrawNode() {
         if (m_otherDebug) {
             auto fillCol = rectColorMap.at(g_debugInformation.m_tryFocusRectType);
             fillCol.a = .01f;
+            auto rect = cl::utils::createTryFocusRect(
+                g_debugInformation.m_from,
+                g_debugInformation.m_tryFocusRectType,
+                g_debugInformation.m_tryFocusRectDirection
+            );
+            auto points = cl::utils::getRectCorners(rect);
             overlay->drawRect(
-                cl::utils::createTryFocusRect(
-                    g_debugInformation.m_from,
-                    g_debugInformation.m_tryFocusRectType,
-                    g_debugInformation.m_tryFocusRectDirection
-                ),
+                points.first,
+                points.second,
                 fillCol,
                 .1f,
                 rectColorMap.at(g_debugInformation.m_tryFocusRectType)
             );
 
             overlay->drawRect(
-                g_debugInformation.m_from,
+                cl::utils::getRectCorners(g_debugInformation.m_from).first,
+                cl::utils::getRectCorners(g_debugInformation.m_from).second,
                 { 0.f, 0.f, 0.f, 0.f },
                 .3f,
                 { 1.f, 0.f, 1.f, 1.f }
             );
 
             overlay->drawRect(
-                g_debugInformation.m_to,
+                cl::utils::getRectCorners(g_debugInformation.m_to).first,
+                cl::utils::getRectCorners(g_debugInformation.m_to).second,
                 { 0.f, 0.f, 0.f, 0.f },
                 .3f,
                 { .5f, .0f, .5f, 1.f }
@@ -661,8 +681,10 @@ void cl::Manager::updateDrawNode() {
                     (TryFocusRectType)i,
                     g_debugInformation.m_tryFocusRectDirection
                 );
+                auto points = cl::utils::getRectCorners(rect);
                 overlay->drawRect(
-                    rect,
+                    points.first,
+                    points.second,
                     { 0.f, 0.f, 0.f, 0.f },
                     .4f,
                     rectColorMap.at((TryFocusRectType)i)

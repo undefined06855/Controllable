@@ -39,7 +39,7 @@
         "selection-outline-thickness": {
             "type": "float",
             "name": "Thickness",
-            "default": 3,
+            "default": 5,
             "min": 1,
             "max": 7,
             "control": { "arrows": false }
@@ -107,16 +107,21 @@
             "type": "title",
             "name": "Other"
         },
+        "other-remove-gd-icons": {
+            "type": "bool",
+            "name": "Remove GD Controller Hints",
+            "default": true
+        },
         "other-force-state": {
             "type": "string",
-            "name": "Controller Test",
+            "name": "Controller Detection",
             "default": "Automatic",
             "one-of": [ "Automatic", "Force Not Using Controller", "Force Using Controller" ]
         },
         "other-debug": {
             "type": "bool",
             "name": "Debug Information",
-            "description": "Add more debugging information as to how Controllable decides what button to switch to next. Only shows with the Legacy outline type.",
+            "description": "Add more debugging information as to how Controllable decides what button to switch to next. Will force the outline type to Legacy.",
             "default": false
         }
     }
