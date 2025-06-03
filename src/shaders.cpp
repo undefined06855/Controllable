@@ -35,9 +35,9 @@ void main() {
     vec2 texelSize = (1.0 / u_screenSize) * u_thickness;
 
     // go through surrounding pixels of this transparent pixel
-    for (float x = -1; x <= 1; x++) {
-        for (float y = -1; y <= 1; y++) {
-            if (x == 0 && y == 0) continue;
+    for (float x = -1.0; x <= 1.0; x++) {
+        for (float y = -1.0; y <= 1.0; y++) {
+            if (x == 0.0 && y == 0.0) continue;
 
             vec2 offset = vec2(x, y) * texelSize;
             float alpha = texture2D(CC_Texture0, v_texCoord + offset).a;

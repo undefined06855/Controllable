@@ -100,6 +100,8 @@ void cl::Manager::createShaders() {
     m_outlineShaderProgram = new cocos2d::CCGLProgram;
     bool ret = m_outlineShaderProgram->initWithVertexShaderByteArray(g_outlineShaderVertex, g_outlineShaderFragment);
     if (!ret) {
+        geode::log::warn("shader failed to load!!!");
+        geode::log::warn("{}", m_outlineShaderProgram->fragmentShaderLog());
         // geode::log::debug("{}", (cocos2d::CCObject*)(void*)0xb00b1e5);
         m_failedToLoadShader = true;
         return;
