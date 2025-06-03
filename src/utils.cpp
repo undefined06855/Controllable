@@ -345,6 +345,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         // levelcells
         { "view", 4 },
         { "get it", 4 },
+        { "get", 4 },
         { "update", 4 },
 
         // settings
