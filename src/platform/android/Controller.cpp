@@ -10,13 +10,14 @@ Controller::Controller()
     : m_state({})
     , m_lastDirection(GamepadDirection::None)
     , m_lastGamepadButton(GamepadButton::None)
+    , m_vibrationTime(0.f)
     , m_connected(false) {}
 
 #define JAVA_GAMEPAD_BOOL_FIELD(field) (bool)info.env->GetBooleanField(object, info.env->GetFieldID(gamepadClass, field, "Z"))
 #define JAVA_GAMEPAD_FLOAT_FIELD(field) (float)info.env->GetFloatField(object, info.env->GetFieldID(gamepadClass, field, "F"))
 
 // should be called before all input processing is done
-void Controller::update() {
+void Controller::update(float dt) {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
 
@@ -57,6 +58,17 @@ void Controller::update() {
     m_state.m_joyLeftY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyLeftY");
     m_state.m_joyRightX = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightX");
     m_state.m_joyRightY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightY");
+
+    m_vibrationTime -= dt;
+    if (m_vibrationTime < 0.f) {
+        m_vibrationTime = 0.f;
+        // XINPUT_VIBRATION vibration = {
+        //     .wLeftMotorSpeed = 0,
+        //     .wRightMotorSpeed = 0,
+        // };
+
+        // _XInputSetState(0, &vibration);
+    }
 }
 
 #undef JAVA_GAMEPAD_BOOL_FIELD
@@ -134,4 +146,15 @@ cocos2d::CCPoint Controller::getLeftJoystick() {
 
 cocos2d::CCPoint Controller::getRightJoystick() {
     return { m_state.m_joyRightX, m_state.m_joyRightY };
+}
+
+void Controller::vibrate(float duration, float left, float right) {
+    m_vibrationTime = duration;
+
+    // XINPUT_VIBRATION vibration = {
+    //     .wLeftMotorSpeed = static_cast<unsigned short>(left * 65535),
+    //     .wRightMotorSpeed = static_cast<unsigned short>(right * 65535),
+    // };
+
+    // _XInputSetState(0, &vibration);
 }
