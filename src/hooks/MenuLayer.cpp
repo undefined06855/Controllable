@@ -5,6 +5,7 @@ bool HookedMenuLayer::init() {
     if (!MenuLayer::init()) return false;
 
     showShaderWarning();
+    showAndroidWarning();
     adjustNGButton();
 
     return true;
@@ -28,6 +29,23 @@ void HookedMenuLayer::showShaderWarning() {
         pop->show();
 
         geode::Mod::get()->setSettingValue<std::string>("selection-outline-type", "Legacy");
+    }
+}
+
+void HookedMenuLayer::showAndroidWarning() {
+    // show warning if android launcher out of date
+    // not sure how this could happen but it might
+    if (cl::Manager::get().m_androidLauncherOutdated) {
+        auto pop = FLAlertLayer::create(
+            "Controllable",
+            "Your <ca>Geode</c> Android Launcher version is too <cr>old</c> to "
+            "support controllers! The launcher should update "
+            "<co>automatically</c>, so simply <cj>restart</c> your game to "
+            "update.",
+            "ok"
+        );
+        pop->m_scene = this;
+        pop->show();
     }
 }
 

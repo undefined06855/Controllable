@@ -5,5 +5,6 @@ class $modify(HookedMenuLayer, MenuLayer) {
     bool init();
 
     void showShaderWarning();
+    void showAndroidWarning();
     void adjustNGButton();
 };

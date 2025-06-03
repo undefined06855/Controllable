@@ -24,6 +24,7 @@ void Controller::update(float dt) {
     auto info = cocos2d::JniMethodInfo();
     if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "getControllerState", "(I)Lcom/geode/launcher/GeometryDashActivity$Gamepad;")) {
         geode::log::warn("Failed to get JNI method info!");
+        cl::Manager::get().m_androidLauncherOutdated = true;
         return;
     }
     

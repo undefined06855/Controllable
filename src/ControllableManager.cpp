@@ -9,7 +9,9 @@
 cl::Manager::Manager()
     : m_settingsChangedThisFrame(false)
 
+    , m_androidLauncherOutdated(false)
     , m_failedToLoadShader(false)
+    
     , m_outlineShaderProgram(nullptr)
     , m_forceSelectionIncludeShadow(false)
 
