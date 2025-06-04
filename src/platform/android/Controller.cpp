@@ -2,77 +2,125 @@
 #include "../../ControllableManager.hpp"
 #include "../../globals.hpp"
 #include <Geode/cocos/platform/android/jni/JniHelper.h>
+#include "jni.h"
 
 Controller g_controller;
 
+ControllerState g_callbackControllerState;
+
+void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject gamepad);
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wwritable-strings"
 Controller::Controller()
     : m_state({})
     , m_lastDirection(GamepadDirection::None)
     , m_lastGamepadButton(GamepadButton::None)
     , m_vibrationTime(0.f)
-    , m_connected(false) {}
+    , m_connected(false) {
 
-#define JAVA_GAMEPAD_BOOL_FIELD(field) (bool)info.env->GetBooleanField(object, info.env->GetFieldID(gamepadClass, field, "Z"))
-#define JAVA_GAMEPAD_FLOAT_FIELD(field) (float)info.env->GetFloatField(object, info.env->GetFieldID(gamepadClass, field, "F"))
+    // taken from cbf
+    static const JNINativeMethod methods[] = {
+        {
+            "setControllerState",
+            "(ILcom/geode/launcher/GeometryDashActivity$Gamepad;)V",
+            reinterpret_cast<void*>(&JNI_GeodeUtils_setControllerState)
+        }
+    };
+
+    // register native function for callback
+    // this is called on the nearest frame whenever a controller input is detected
+
+    JNIEnv* env;
+    auto ret = cocos2d::JniHelper::getJavaVM()->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+
+    if (ret != JNI_OK) {
+        geode::log::warn("Failed to get java env!");
+        return;
+    }
+
+    auto geodeUtils = cocos2d::JniHelper::getClassID("com/geode/launcher/utils/GeodeUtils");
+    ret = env->RegisterNatives(geodeUtils, methods, 1);
+    if (ret) {
+        geode::log::warn("Failed to set native function for setControllerState!");
+        cl::Manager::get().m_androidLauncherOutdated = true;
+        return;
+    }
+
+    // and enable callbacks
+
+    auto info = cocos2d::JniMethodInfo();
+    if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "enableControllerCallbacks", "()V")) {
+        geode::log::warn("Failed to get JNI method info for enableControllerCallbacks!");
+        return;
+    }
+
+    info.env->CallStaticVoidMethod(info.classID, info.methodID);
+    info.env->DeleteLocalRef(info.classID);
+}
+
+#pragma clang diagnostic pop
 
 // should be called before all input processing is done
 void Controller::update(float dt) {
     m_lastDirection = directionPressed();
     m_lastGamepadButton = gamepadButtonPressed();
 
-    auto info = cocos2d::JniMethodInfo();
-    if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "getControllerState", "(I)Lcom/geode/launcher/GeometryDashActivity$Gamepad;")) {
-        geode::log::warn("Failed to get JNI method info!");
-        cl::Manager::get().m_androidLauncherOutdated = true;
-        return;
-    }
-    
-    auto object = info.env->CallStaticObjectMethod(info.classID, info.methodID, 0);
-    info.env->DeleteLocalRef(info.classID);
-
-    if (!object) {
-        m_connected = false;
-        g_isUsingController = false;
-        return;
-    }
-
-    if (!m_connected) {
-        // just connected controller
-        g_isUsingController = true;
-    }
-
-    m_connected = true;
-
-    auto gamepadClass = cocos2d::JniHelper::getClassID("com/geode/launcher/GeometryDashActivity$Gamepad");
-
-    m_state.m_buttonA = JAVA_GAMEPAD_BOOL_FIELD("mButtonA");
-    m_state.m_buttonB = JAVA_GAMEPAD_BOOL_FIELD("mButtonB");
-    m_state.m_buttonX = JAVA_GAMEPAD_BOOL_FIELD("mButtonX");
-    m_state.m_buttonY = JAVA_GAMEPAD_BOOL_FIELD("mButtonY");
-    m_state.m_buttonStart = JAVA_GAMEPAD_BOOL_FIELD("mButtonStart");
-    m_state.m_buttonSelect = JAVA_GAMEPAD_BOOL_FIELD("mButtonSelect");
-    m_state.m_buttonL = JAVA_GAMEPAD_BOOL_FIELD("mButtonL");
-    m_state.m_buttonR = JAVA_GAMEPAD_BOOL_FIELD("mButtonR");
-    m_state.m_buttonUp = JAVA_GAMEPAD_BOOL_FIELD("mButtonUp");
-    m_state.m_buttonDown = JAVA_GAMEPAD_BOOL_FIELD("mButtonDown");
-    m_state.m_buttonLeft = JAVA_GAMEPAD_BOOL_FIELD("mButtonLeft");
-    m_state.m_buttonRight = JAVA_GAMEPAD_BOOL_FIELD("mButtonRight");
-    m_state.m_joyLeft = JAVA_GAMEPAD_BOOL_FIELD("mButtonJoyLeft");
-    m_state.m_joyRight = JAVA_GAMEPAD_BOOL_FIELD("mButtonJoyRight");
-    
-    auto deadzone = cl::Manager::get().m_controllerTriggerDeadzone;
-    m_state.m_buttonZL = JAVA_GAMEPAD_FLOAT_FIELD("mTriggerZL") > deadzone;
-    m_state.m_buttonZR = JAVA_GAMEPAD_FLOAT_FIELD("mTriggerZR") > deadzone;
-
-    m_state.m_joyLeftX = JAVA_GAMEPAD_FLOAT_FIELD("mJoyLeftX");
-    m_state.m_joyLeftY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyLeftY");
-    m_state.m_joyRightX = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightX");
-    m_state.m_joyRightY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightY");
+    // sync callback controller state with controller state
+    m_state = g_callbackControllerState;
 
     m_vibrationTime -= dt;
     if (m_vibrationTime < 0.f) {
         m_vibrationTime = 0.f;
     }
+}
+
+#define JAVA_GAMEPAD_BOOL_FIELD(field) (bool)env->GetBooleanField(gamepad, env->GetFieldID(gamepadClass, field, "Z"))
+#define JAVA_GAMEPAD_FLOAT_FIELD(field) (float)env->GetFloatField(gamepad, env->GetFieldID(gamepadClass, field, "F"))
+
+void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject gamepad) {
+    geode::log::info("controller {} update", index);
+    if (index != 0) return;
+
+    if (!gamepad) {
+        g_controller.m_connected = false;
+        g_isUsingController = false;
+        return;
+    }
+
+    if (!g_controller.m_connected) {
+        // just connected controller
+        g_isUsingController = true;
+    }
+
+    g_controller.m_connected = true;
+    g_isUsingController = true;
+
+    auto gamepadClass = cocos2d::JniHelper::getClassID("com/geode/launcher/GeometryDashActivity$Gamepad");
+
+    g_callbackControllerState.m_buttonA = JAVA_GAMEPAD_BOOL_FIELD("mButtonA");
+    g_callbackControllerState.m_buttonB = JAVA_GAMEPAD_BOOL_FIELD("mButtonB");
+    g_callbackControllerState.m_buttonX = JAVA_GAMEPAD_BOOL_FIELD("mButtonX");
+    g_callbackControllerState.m_buttonY = JAVA_GAMEPAD_BOOL_FIELD("mButtonY");
+    g_callbackControllerState.m_buttonStart = JAVA_GAMEPAD_BOOL_FIELD("mButtonStart");
+    g_callbackControllerState.m_buttonSelect = JAVA_GAMEPAD_BOOL_FIELD("mButtonSelect");
+    g_callbackControllerState.m_buttonL = JAVA_GAMEPAD_BOOL_FIELD("mButtonL");
+    g_callbackControllerState.m_buttonR = JAVA_GAMEPAD_BOOL_FIELD("mButtonR");
+    g_callbackControllerState.m_buttonUp = JAVA_GAMEPAD_BOOL_FIELD("mButtonUp");
+    g_callbackControllerState.m_buttonDown = JAVA_GAMEPAD_BOOL_FIELD("mButtonDown");
+    g_callbackControllerState.m_buttonLeft = JAVA_GAMEPAD_BOOL_FIELD("mButtonLeft");
+    g_callbackControllerState.m_buttonRight = JAVA_GAMEPAD_BOOL_FIELD("mButtonRight");
+    g_callbackControllerState.m_joyLeft = JAVA_GAMEPAD_BOOL_FIELD("mButtonJoyLeft");
+    g_callbackControllerState.m_joyRight = JAVA_GAMEPAD_BOOL_FIELD("mButtonJoyRight");
+    
+    auto deadzone = cl::Manager::get().m_controllerTriggerDeadzone;
+    g_callbackControllerState.m_buttonZL = JAVA_GAMEPAD_FLOAT_FIELD("mTriggerZL") > deadzone;
+    g_callbackControllerState.m_buttonZR = JAVA_GAMEPAD_FLOAT_FIELD("mTriggerZR") > deadzone;
+
+    g_callbackControllerState.m_joyLeftX = JAVA_GAMEPAD_FLOAT_FIELD("mJoyLeftX");
+    g_callbackControllerState.m_joyLeftY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyLeftY");
+    g_callbackControllerState.m_joyRightX = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightX");
+    g_callbackControllerState.m_joyRightY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightY");
 }
 
 #undef JAVA_GAMEPAD_BOOL_FIELD
