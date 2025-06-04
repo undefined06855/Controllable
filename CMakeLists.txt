@@ -15,7 +15,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 if (WIN32)
-    include_directories("C:\\Program Files\\Java\\jdk-21\\include")
     file(GLOB_RECURSE WIN_SOURCES src/platform/windows/**.cpp)
     list(APPEND SOURCES ${WIN_SOURCES})
 elseif (APPLE)
