@@ -8,9 +8,11 @@ Controller g_controller;
 ControllerState g_callbackControllerState;
 
 void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject gamepad);
+void JNI_GeodeUtils_setControllerConnected(JNIEnv* env, jobject, jint index, jboolean connected);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wwritable-strings"
+
 Controller::Controller()
     : m_state({})
     , m_lastDirection(GamepadDirection::None)
@@ -24,6 +26,11 @@ Controller::Controller()
             "setControllerState",
             "(ILcom/geode/launcher/GeometryDashActivity$Gamepad;)V",
             reinterpret_cast<void*>(&JNI_GeodeUtils_setControllerState)
+        },
+        {
+            "setControllerConnected",
+            "(IZ)V",
+            reinterpret_cast<void*>(&JNI_GeodeUtils_setControllerConnected)
         }
     };
 
@@ -39,7 +46,7 @@ Controller::Controller()
     }
 
     auto geodeUtils = cocos2d::JniHelper::getClassID("com/geode/launcher/utils/GeodeUtils");
-    ret = env->RegisterNatives(geodeUtils, methods, 1);
+    ret = env->RegisterNatives(geodeUtils, methods, 2);
     if (ret) {
         geode::log::warn("Failed to set native function for setControllerState!");
         cl::Manager::get().m_androidLauncherOutdated = true;
@@ -78,19 +85,7 @@ void Controller::update(float dt) {
 #define JAVA_GAMEPAD_FLOAT_FIELD(field) (float)env->GetFloatField(gamepad, env->GetFieldID(gamepadClass, field, "F"))
 
 void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject gamepad) {
-    geode::log::info("controller {} update", index);
     if (index != 0) return;
-
-    if (!gamepad) {
-        g_controller.m_connected = false;
-        g_isUsingController = false;
-        return;
-    }
-
-    if (!g_controller.m_connected) {
-        // just connected controller
-        g_isUsingController = true;
-    }
 
     g_controller.m_connected = true;
     g_isUsingController = true;
@@ -120,6 +115,13 @@ void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject
     g_callbackControllerState.m_joyLeftY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyLeftY");
     g_callbackControllerState.m_joyRightX = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightX");
     g_callbackControllerState.m_joyRightY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightY");
+}
+
+void JNI_GeodeUtils_setControllerConnected(JNIEnv* env, jobject, jint index, jboolean connected) {
+    if (index != 0) return;
+
+    g_controller.m_connected = connected;
+    g_isUsingController = connected;
 }
 
 #undef JAVA_GAMEPAD_BOOL_FIELD
