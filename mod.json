@@ -19,6 +19,10 @@
         "source": "https://github.com/undefined06855/Controllable"
     },
 
+    "resources": {
+        "sprites": [ "resources/*.png" ]
+    },
+
     "incompatibilities": {
         "firee.deck": {
             "version": "*",

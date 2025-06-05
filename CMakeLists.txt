@@ -35,6 +35,7 @@ list(APPEND COMMON_SOURCES
     src/globals.cpp
     src/shaders.cpp
     src/utils.cpp
+    src/sliderfix.cpp
 )
 list(APPEND SOURCES ${COMMON_SOURCES})
 
