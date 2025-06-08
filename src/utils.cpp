@@ -712,7 +712,6 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                         return true;
                         
                     case FocusInteractionType::Activate: {
-                        // TODO: check if ck pr has been put into a release
                         auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                         point = cocos2d::CCDirector::get()->convertToGL(point);
                         touch->autorelease();
