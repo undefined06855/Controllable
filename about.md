@@ -18,5 +18,5 @@ such as deadzones, outline colour and whether to use a fixed outline, a fancy
 pants shader outline or a hover outline!
 
 This mod is still extremely new, and as such still has minor bugs, mostly to do
-with checkboxes and buttons that change state when pressed. On Android, this mod
-may also add a couple frames of input delay!
+with checkboxes and buttons that change state when pressed. Android and Mac 
+support is functional, but still in the works!
