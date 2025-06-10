@@ -24,7 +24,7 @@ Controller::Controller()
     static const JNINativeMethod methods[] = {
         {
             "setControllerState",
-            "(ILcom/geode/launcher/GeometryDashActivity$Gamepad;)V",
+            "(ILcom/geode/launcher/utils/GeodeUtils$Gamepad;)V",
             reinterpret_cast<void*>(&JNI_GeodeUtils_setControllerState)
         },
         {
@@ -84,13 +84,13 @@ void Controller::update(float dt) {
 #define JAVA_GAMEPAD_BOOL_FIELD(field) (bool)env->GetBooleanField(gamepad, env->GetFieldID(gamepadClass, field, "Z"))
 #define JAVA_GAMEPAD_FLOAT_FIELD(field) (float)env->GetFloatField(gamepad, env->GetFieldID(gamepadClass, field, "F"))
 
-void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject gamepad) {
+void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject self, jint index, jobject gamepad) {
     if (index != 0) return;
 
     g_controller.m_connected = true;
     g_isUsingController = true;
 
-    auto gamepadClass = cocos2d::JniHelper::getClassID("com/geode/launcher/GeometryDashActivity$Gamepad");
+    auto gamepadClass = cocos2d::JniHelper::getClassID("com/geode/launcher/utils/GeodeUtils$Gamepad");
 
     g_callbackControllerState.m_buttonA = JAVA_GAMEPAD_BOOL_FIELD("mButtonA");
     g_callbackControllerState.m_buttonB = JAVA_GAMEPAD_BOOL_FIELD("mButtonB");
