@@ -34,6 +34,7 @@ Controller::Controller()
         }
     };
 
+    
     // register native function for callback
     // this is called on the nearest frame whenever a controller input is detected
 

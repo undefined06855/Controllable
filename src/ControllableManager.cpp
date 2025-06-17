@@ -548,10 +548,12 @@ void cl::Manager::depressButton(GamepadButton button) {
     } else if (button == GamepadButton::L) {
         // press any left buttons onscreen
         auto left = cl::utils::findNavArrow(NavigationArrowType::Left);
+        if (!left) return;
         cl::utils::interactWithFocusableElement(left, FocusInteractionType::Activate);
     } else if (button == GamepadButton::R) {
         // press any right buttons onscreen
         auto right = cl::utils::findNavArrow(NavigationArrowType::Right);
+        if (!right) return;
         cl::utils::interactWithFocusableElement(right, FocusInteractionType::Activate);
     }
 }
