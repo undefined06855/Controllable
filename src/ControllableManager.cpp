@@ -4,6 +4,7 @@
 #include "Controller.hpp"
 #include "utils.hpp"
 #include <RenderTexture.hpp>
+#include <chrono>
 
 // rest of the members are settings and can stay uninitialised
 cl::Manager::Manager()
@@ -298,6 +299,8 @@ void cl::Manager::pressDirection(GamepadDirection direction) {
     if (!g_button) return;
     if (g_isAdjustingSlider || g_isEditingText) return;
 
+    cl::utils::timeStart("Finding button in direction");
+
     // find buttons with shrunken, enlarged, further enlarged and extreme rect types
     static const std::array<TryFocusRectType, 4> rectTypes = {
         TryFocusRectType::Shrunken,
@@ -322,6 +325,9 @@ void cl::Manager::pressDirection(GamepadDirection direction) {
                 .m_from = cl::utils::getNodeBoundingBox(g_button),
                 .m_to = cl::utils::getNodeBoundingBox(button)
             };
+
+            cl::utils::timeEnd("Finding button in direction");
+
             cl::utils::setCurrentButton(button);
             return;
         }

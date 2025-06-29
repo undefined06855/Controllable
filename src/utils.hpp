@@ -3,6 +3,8 @@
 
 namespace cl::utils {
 
+extern std::unordered_map<std::string_view, std::chrono::time_point<std::chrono::steady_clock>> g_timers;
+
 void clearCurrentButton();
 void setCurrentButton(cocos2d::CCNode* node);
 
@@ -47,5 +49,8 @@ bool shouldForceUseLegacySelection(cocos2d::CCNode* node);
 bool textInputIsFromGeode(cocos2d::CCNode* node);
 
 std::pair<cocos2d::CCPoint, cocos2d::CCPoint> getRectCorners(cocos2d::CCRect& rect);
+
+void timeStart(std::string_view label);
+long long timeEnd(std::string_view label);
 
 }

@@ -4,6 +4,7 @@
 #include "globals.hpp"
 #include "Controller.hpp"
 #include <alphalaneous.alphas_geode_utils/include/Utils.h>
+#include <chrono>
 
 void cl::utils::clearCurrentButton() {
     if (!g_button) return;
@@ -308,6 +309,8 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
 }
 
 cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*>& buttons) {
+    cl::utils::timeStart("Finding most important button");
+
     int mostImportantImportantness = -1;
     cocos2d::CCNode* mostImportantButton = buttons[0]; // we need something to fall back on at this point
 
@@ -447,6 +450,8 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
             }
         }
     }
+
+    cl::utils::timeEnd("Finding most important button");
 
     return mostImportantButton;
 }
@@ -899,4 +904,33 @@ std::pair<cocos2d::CCPoint, cocos2d::CCPoint> cl::utils::getRectCorners(cocos2d:
         { rect.getMinX(), rect.getMinY() },  
         { rect.getMaxX(), rect.getMaxY() }  
     };
+}
+
+std::unordered_map<std::string_view, std::chrono::time_point<std::chrono::steady_clock>> cl::utils::g_timers = {};
+
+void cl::utils::timeStart(std::string_view label) {
+    auto begin = std::chrono::high_resolution_clock::now();
+    cl::utils::g_timers[label] = begin;
+}
+
+long long cl::utils::timeEnd(std::string_view label) {
+    if (!cl::utils::g_timers.contains(label)) {
+        geode::log::warn("Unknown timer {}!", label);
+        return -1;
+    }
+
+    auto begin = cl::utils::g_timers[label];
+    auto end = std::chrono::high_resolution_clock::now();
+    auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
+    // if it takes more than 2 frames, warn
+    if (time > cocos2d::CCDirector::get()->m_fActualDeltaTime * 1000 * 2) {
+        geode::log::warn("{} took {}ms! (>2 frames)", label, time);
+    } else {
+        geode::log::debug("{} took {}ms", label, time);
+    }
+
+    cl::utils::g_timers.erase(label);
+
+    return time;
 }
