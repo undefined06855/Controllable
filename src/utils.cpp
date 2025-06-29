@@ -60,7 +60,7 @@ std::vector<cocos2d::CCNode*> cl::utils::gatherAllButtons(cocos2d::CCNode* node,
             if (cl::utils::shouldNotTreatAsPopup(child)) {
                 continue;
             }
-            
+
             // havent found any yet we need something to fallback to
             if (!highestZOrderChild) {
                 highestZOrderChild = child;
@@ -254,7 +254,7 @@ cocos2d::CCRect cl::utils::createTryFocusRect(cocos2d::CCRect initialButtonRect,
             distance = 1000.f;
             break;
     }
-        
+
     // add distance
     switch (direction) {
         case Direction::Up:
@@ -391,7 +391,7 @@ cocos2d::CCNode* cl::utils::findMostImportantButton(std::vector<cocos2d::CCNode*
         // dont do this for non-buttons
         if (cl::utils::getFocusableNodeType(button) != FocusableNodeType::Button) continue;
         int importantness = 0;
-        
+
         // check if this contains a sprite
         auto sprite = button->getChildByType<cocos2d::CCSprite*>(0);
         if (sprite) {
@@ -671,7 +671,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
         case FocusableNodeType::Unknown:
             geode::log::warn("Attempted interaction on unknown node type!");
             break;
-        
+
         case FocusableNodeType::Button: {
             if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCMenuItem*>(node)) {
                 switch (interaction) {
@@ -707,10 +707,10 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                         touch->setTouchInfo(cocos2d::CCTOUCHBEGAN, 99999.f, 99999.f);
                         break;
                     }
-                    
+
                     case FocusInteractionType::Select:
                         return true;
-                        
+
                     case FocusInteractionType::Activate: {
                         auto point = cocos2d::CCPoint{ bb.getMaxX(), bb.getMidY() };
                         point = cocos2d::CCDirector::get()->convertToGL(point);
@@ -719,7 +719,7 @@ bool cl::utils::interactWithFocusableElement(cocos2d::CCNode* node, FocusInterac
                         break;
                     }
                 }
-                
+
                 cast->ccTouchBegan(touch, nullptr);
 
                 return true;
@@ -876,7 +876,7 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
 
     // the tower
     if (id == "enter-btn") return true;
-    
+
     // and check user object
     if (node->getUserObject("force-legacy-selection"_spr)) return true;
     for (auto child : geode::cocos::CCArrayExt<cocos2d::CCNode*>(node->getChildren())) {

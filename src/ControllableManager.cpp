@@ -11,7 +11,7 @@ cl::Manager::Manager()
 
     , m_androidLauncherOutdated(false)
     , m_failedToLoadShader(false)
-    
+
     , m_outlineShaderProgram(nullptr)
     , m_forceSelectionIncludeShadow(false)
 
@@ -128,7 +128,7 @@ void cl::Manager::createShaders() {
 void cl::Manager::update(float dt) {
     g_controller.update(dt);
     m_settingsChangedThisFrame = false;
-    
+
 #ifndef GEODE_IS_MOBILE
     auto application = cocos2d::CCApplication::get();
     application->m_pControllerHandler->m_controllerConnected = g_controller.m_connected;
@@ -222,7 +222,7 @@ void cl::Manager::update(float dt) {
             m_editingTextRepeatTimer += dt;
             if (m_editingTextRepeatTimer > m_navigationCaretRepeatInterval) {
                 m_editingTextRepeatTimer = 0.f;
-                
+
                 // pressing - take timer into account
                 auto simpleDirection = cl::utils::simplifyGamepadDirection(directionPressing);
 

@@ -56,7 +56,7 @@ void Controller::update(float dt) {
 
     m_state.m_joyLeft = state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
     m_state.m_joyRight = state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
-    
+
     m_state.m_joyLeftX = state.Gamepad.sThumbLX / 32767.f;
     m_state.m_joyLeftY = state.Gamepad.sThumbLY / 32767.f;
     m_state.m_joyRightX = state.Gamepad.sThumbRX / 32767.f;

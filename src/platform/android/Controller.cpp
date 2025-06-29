@@ -34,7 +34,7 @@ Controller::Controller()
         }
     };
 
-    
+
     // register native function for callback
     // this is called on the nearest frame whenever a controller input is detected
 
@@ -107,7 +107,7 @@ void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject self, jint index, jo
     g_callbackControllerState.m_buttonRight = JAVA_GAMEPAD_BOOL_FIELD("mButtonRight");
     g_callbackControllerState.m_joyLeft = JAVA_GAMEPAD_BOOL_FIELD("mButtonJoyLeft");
     g_callbackControllerState.m_joyRight = JAVA_GAMEPAD_BOOL_FIELD("mButtonJoyRight");
-    
+
     auto deadzone = cl::Manager::get().m_controllerTriggerDeadzone;
     g_callbackControllerState.m_buttonZL = JAVA_GAMEPAD_FLOAT_FIELD("mTriggerZL") > deadzone;
     g_callbackControllerState.m_buttonZR = JAVA_GAMEPAD_FLOAT_FIELD("mTriggerZR") > deadzone;
@@ -207,7 +207,7 @@ void Controller::vibrate(float duration, float left, float right) {
 
     // this doesnt actually work for my controller so its gone untested
     // i hope this does actually work for somebody out there
-    
+
     auto info = cocos2d::JniMethodInfo();
     if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "setControllerVibration", "(IJII)V")) {
         geode::log::warn("Failed to get JNI method info for vibration!");

@@ -32,9 +32,9 @@ public:
 
     bool m_androidLauncherOutdated;
     bool m_failedToLoadShader;
-    
+
     cocos2d::CCGLProgram* m_outlineShaderProgram;
-    
+
     bool m_forceSelectionIncludeShadow;
 
     float m_editingTextRepeatTimer;
