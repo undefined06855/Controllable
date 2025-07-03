@@ -15,32 +15,25 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 if (WIN32)
-    file(GLOB_RECURSE WIN_SOURCES src/platform/windows/**.cpp)
+    file(GLOB_RECURSE WIN_SOURCES src/platform/windows/*.cpp)
     list(APPEND SOURCES ${WIN_SOURCES})
 elseif (APPLE)
     file(GLOB_RECURSE MAC_SOURCES 
-        src/platform/macos/**.cpp
-        src/platform/macos/**.mm
+        src/platform/macos/*.cpp
+        src/platform/macos/*.mm
     )
     list(APPEND SOURCES ${MAC_SOURCES})
 elseif (ANDROID)
-    file(GLOB_RECURSE ANDROID_SOURCES src/platform/android/**.cpp)
+    file(GLOB_RECURSE ANDROID_SOURCES src/platform/android/*.cpp)
     list(APPEND SOURCES ${ANDROID_SOURCES})
 endif()
 
-file(GLOB_RECURSE COMMON_SOURCES src/hooks/**.cpp)
-list(APPEND COMMON_SOURCES
-    # TODO: can i use globbing here??
-    src/ControllableManager.cpp
-    src/globals.cpp
-    src/shaders.cpp
-    src/utils.cpp
-    src/sliderfix.cpp
-)
+file(GLOB COMMON_SOURCES src/*.cpp)
+file(GLOB_RECURSE HOOK_SOURCES src/hooks/*.cpp)
 list(APPEND SOURCES ${COMMON_SOURCES})
+list(APPEND SOURCES ${HOOK_SOURCES})
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
-
 
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
