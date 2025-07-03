@@ -10,7 +10,7 @@ endif()
 
 project(Controllable VERSION 1.0.0)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DREMOVE_GJITEMICON)
 endif()
 

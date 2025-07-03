@@ -4,7 +4,6 @@
 #include "Controller.hpp"
 #include "utils.hpp"
 #include <RenderTexture.hpp>
-#include <chrono>
 
 // rest of the members are settings and can stay uninitialised
 cl::Manager::Manager()
@@ -155,7 +154,6 @@ void cl::Manager::update(float dt) {
 
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
     // does this also happen for checkboxes / any switcher with two buttons?
-    // TODO: android support???
 
     // force reset if the button goes offscreen or we are transitioning
     if (!cl::utils::canFocus(g_button, true) || cocos2d::CCDirector::get()->getIsTransitioning()) {

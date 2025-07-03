@@ -129,7 +129,7 @@ bool cl::utils::canFocus(cocos2d::CCNode* node, bool doOffscreenChecks) {
     auto asDialogLayer = geode::cast::typeinfo_cast<DialogLayer*>(node);
     if (
            (asButton && asButton->isEnabled())
-        || (asInput)
+        || (asInput && asInput->isTouchEnabled())
         || (asDialogLayer)
     ) {
         return true;
@@ -836,7 +836,6 @@ bool cl::utils::shouldForceIncludeShadow(cocos2d::CCNode* node) {
     if (id == "right-chest") return true;
 
     // sliderthumbs look a bit ass
-    // TODO: fix the half transparency compressed mess it has going on
     if (cl::utils::buttonIsActuallySliderThumb(node)) return true;
 
     // check user object
@@ -923,9 +922,9 @@ long long cl::utils::timeEnd(std::string_view label) {
     auto end = std::chrono::high_resolution_clock::now();
     auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
-    // if it takes more than 2 frames, warn
-    if (time > cocos2d::CCDirector::get()->m_fActualDeltaTime * 1000 * 2) {
-        geode::log::warn("{} took {}ms! (>2 frames)", label, time);
+    // if it takes more than 60ms, warn
+    if (time > 60) {
+        geode::log::warn("{} took {}ms! (>60ms)", label, time);
     } else {
         geode::log::debug("{} took {}ms", label, time);
     }
