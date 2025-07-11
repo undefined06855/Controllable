@@ -1,6 +1,7 @@
 #include "CCLayer.hpp"
 #include "../utils.hpp"
 #include "../globals.hpp"
+#include <NodeIdentification.hpp>
 
 void HookedCCLayer::onEnter() {
     CCLayer::onEnter();

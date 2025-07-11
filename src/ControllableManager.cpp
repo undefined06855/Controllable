@@ -169,7 +169,28 @@ void cl::Manager::update(float dt) {
                 updateDrawNode(); // let it clear
                 return;
             }
-            cl::utils::setCurrentButton(cl::utils::findMostImportantButton(buttons));
+
+            // remember to add last button to history
+            if (!g_lastButton.empty()) {
+                g_history.push_back(g_lastButton);
+            }
+
+            bool found = false;
+
+            for (auto id : g_history) {
+                auto button = ni::findNode(id);
+                // we need this check since a button may be found that isnt in
+                // our button list (not focusable/in previous popup)
+                if (std::find(buttons.begin(), buttons.end(), button) != buttons.end()) {
+                    found = true;
+                    cl::utils::setCurrentButton(button);
+                    break;
+                }
+            }
+
+            if (!found) {
+                cl::utils::setCurrentButton(cl::utils::findMostImportantButton(buttons));
+            }
         }
     }
 

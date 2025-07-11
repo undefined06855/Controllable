@@ -4,12 +4,14 @@
 #include "globals.hpp"
 #include "Controller.hpp"
 #include <alphalaneous.alphas_geode_utils/include/Utils.h>
+#include <NodeIdentification.hpp>
 #include <chrono>
 
 void cl::utils::clearCurrentButton() {
     if (!g_button) return;
 
     cl::utils::interactWithFocusableElement(g_button, FocusInteractionType::Unselect);
+    g_lastButton = ni::identifyNode(g_button);
 
     g_button = nullptr;
 }
