@@ -41,7 +41,7 @@ bool isUsingController() {
 $on_mod(Loaded) {
     new geode::EventListener<geode::EventFilter<ControllerActionEvent>>(+[](ControllerActionEvent* ev) {
         auto action = ev->getAction();
-        auto down = ev->getDown(); // get up again, come on, come on move
+        auto down = ev->getDown(); // get up again, come on, come on, move
 
         auto& manager = cl::Manager::get();
 
