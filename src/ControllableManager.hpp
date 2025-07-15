@@ -54,8 +54,8 @@ public:
     cocos2d::CCNode* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons);
 
     // face buttons
-    void pressButton(GamepadButton button);
-    void depressButton(GamepadButton button);
+    void pressButton(GamepadButton button, bool allowFallback = true);
+    void depressButton(GamepadButton button, bool allowFallback = true);
 
     void fallbackToGD(GamepadButton button, GamepadDirection direction, bool down);
 

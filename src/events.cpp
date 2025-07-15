@@ -11,10 +11,10 @@ ControllerActionEvent::ControllerActionEvent(controllable::ControllerAction even
 controllable::ControllerAction ControllerActionEvent::getAction() { return m_action; }
 bool ControllerActionEvent::getDown() { return m_down; }
 
-SimpleDirectionPressEvent::SimpleDirectionPressEvent(controllable::Direction direction)
-    : m_direction(direction) {}
+SimpleControllerEvent::SimpleControllerEvent(controllable::SimpleControllerEventType event)
+    : m_event(event) {}
 
-controllable::Direction SimpleDirectionPressEvent::SimpleDirectionPressEvent::getDirection() { return m_direction; }
+controllable::SimpleControllerEventType SimpleControllerEvent::SimpleControllerEvent::getControllerEvent() { return m_event; }
 
 bool isUsingController() {
     return cl::utils::isUsingController();
@@ -80,29 +80,41 @@ $on_mod(Loaded) {
         return geode::ListenerResult::Stop;
     });
 
-    new geode::EventListener<geode::EventFilter<SimpleDirectionPressEvent>>(+[](SimpleDirectionPressEvent* ev) {
-        auto direction = ev->getDirection();
+    new geode::EventListener<geode::EventFilter<SimpleControllerEvent>>(+[](SimpleControllerEvent* ev) {
+        auto event = ev->getControllerEvent();
         auto& manager = cl::Manager::get();
 
-        switch (direction) {
-            case controllable::Direction::None:
+        switch (event) {
+            case controllable::SimpleControllerEventType::None:
                 manager.pressDirection(GamepadDirection::None, /* (disallow fallback) */ false);
                 break;
 
-            case controllable::Direction::Up:
+            case controllable::SimpleControllerEventType::Up:
                 manager.pressDirection(GamepadDirection::Up, /* (disallow fallback) */ false);
                 break;
 
-            case controllable::Direction::Down:
+            case controllable::SimpleControllerEventType::Down:
                 manager.pressDirection(GamepadDirection::Down, /* (disallow fallback) */ false);
                 break;
 
-            case controllable::Direction::Left:
+            case controllable::SimpleControllerEventType::Left:
                 manager.pressDirection(GamepadDirection::Left, /* (disallow fallback) */ false);
                 break;
 
-            case controllable::Direction::Right:
+            case controllable::SimpleControllerEventType::Right:
                 manager.pressDirection(GamepadDirection::Right, /* (disallow fallback) */ false);
+                break;
+
+            case controllable::SimpleControllerEventType::ConfirmDown:
+                manager.pressButton(GamepadButton::A, /* (disallow fallback) */ false);
+                break;
+
+            case controllable::SimpleControllerEventType::ConfirmUp:
+                manager.depressButton(GamepadButton::A, /* (disallow fallback) */ false);
+                break;
+            
+            case controllable::SimpleControllerEventType::Return:
+                manager.pressButton(GamepadButton::B, /* (disallow fallback) */ false);
                 break;
         }
 

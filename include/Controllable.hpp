@@ -4,9 +4,9 @@
 
 namespace controllable {
 
-enum class Direction {
+enum class SimpleControllerEventType {
     None = 0,
-    Up, Down, Left, Right
+    Up, Down, Left, Right, ConfirmDown, ConfirmUp, Return
 };
 
 enum class ControllerAction {
@@ -34,12 +34,12 @@ public:
     bool getDown();
 };
 
-class SimpleDirectionPressEvent : public geode::Event {
+class SimpleControllerEvent : public geode::Event {
 protected:
-    Direction m_direction;
+    SimpleControllerEventType m_event;
 public:
-    SimpleDirectionPressEvent(Direction direction);
-    Direction getDirection();
+    SimpleControllerEvent(SimpleControllerEventType event);
+    SimpleControllerEventType getControllerEvent();
 };
 
 }

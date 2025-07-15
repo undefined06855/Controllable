@@ -493,12 +493,12 @@ cocos2d::CCNode* cl::Manager::attemptFindButton(Direction direction, cocos2d::CC
     return closestButton;
 }
 
-void cl::Manager::pressButton(GamepadButton button) {
+void cl::Manager::pressButton(GamepadButton button, bool allowFallback) {
     if (LevelEditorLayer::get()) return;
 
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         // forward to cckeyboarddispatcher for gd built in handling
-        fallbackToGD(button, GamepadDirection::None, true);
+        if (allowFallback) fallbackToGD(button, GamepadDirection::None, true);
         return;
     }
 
@@ -512,7 +512,7 @@ void cl::Manager::pressButton(GamepadButton button) {
     }
 }
 
-void cl::Manager::depressButton(GamepadButton button) {
+void cl::Manager::depressButton(GamepadButton button, bool allowFallback) {
     if (LevelEditorLayer::get()) return;
 
     // there's a chance the fallback falls back to the pause button and presses
@@ -520,10 +520,11 @@ void cl::Manager::depressButton(GamepadButton button) {
     // never be released so the releasing code runs regardless of the playlayer
     // check
     // robtop does all the controller keybind stuff either on key down or in
-    // that ccapplication function i removed idk i cant be bothered to check
-    fallbackToGD(button, GamepadDirection::None, false);
+    // that ccapplication function i removed idk i cant be bothered to check so
+    // technically this wouldnt do anything unless in playlayer anyway
+    if (allowFallback) fallbackToGD(button, GamepadDirection::None, false);
 
-    // only use fallback if we're playing level etc
+    // **only** use fallback if we're playing level etc
     if (cl::utils::isPlayingLevel() || cl::utils::isKeybindPopupOpen()) {
         return;
     }
