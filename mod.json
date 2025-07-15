@@ -7,7 +7,7 @@
         "ios": "2.2074"
     },
 
-    "version": "v1.0.2",
+    "version": "v1.0.3",
     "id": "undefined0.controllable",
     "name": "Controllable",
     "developer": "undefined0",
@@ -34,6 +34,10 @@
 		"alphalaneous.alphas_geode_utils": "v1.1.5",
         "geode.node-ids": "v1.20.1"
 	},
+
+    "api": {
+        "include": [ "include/*.hpp" ]
+    },
 
     "settings": {
         "selection-outline-title": {

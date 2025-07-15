@@ -49,7 +49,7 @@ public:
     void update(float dt);
 
     // direction
-    void pressDirection(GamepadDirection direction);
+    void pressDirection(GamepadDirection direction, bool allowFallback = true);
     void depressDirection(GamepadDirection direction);
     cocos2d::CCNode* attemptFindButton(Direction direction, cocos2d::CCRect rect, std::vector<cocos2d::CCNode*> buttons);
 

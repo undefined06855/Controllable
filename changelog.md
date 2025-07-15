@@ -1,4 +1,6 @@
 # Controllable
+## v1.0.3
+- Add event based API for mods looking to simulate controller events
 ## v1.0.2
 - Ensure disabled text inputs cannot be focused
 - Add timing data logs in console

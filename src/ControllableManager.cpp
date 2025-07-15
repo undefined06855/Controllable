@@ -305,13 +305,13 @@ void cl::Manager::update(float dt) {
     updateDrawNode();
 }
 
-void cl::Manager::pressDirection(GamepadDirection direction) {
+void cl::Manager::pressDirection(GamepadDirection direction, bool allowFallback) {
     if (
         cl::utils::isPlayingLevel()
         || cl::utils::isKeybindPopupOpen()
         || cl::utils::directionIsSecondaryJoystick(direction)
     ) {
-        fallbackToGD(GamepadButton::None, direction, true);
+        if (allowFallback) fallbackToGD(GamepadButton::None, direction, true);
         return;
     }
 
