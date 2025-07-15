@@ -86,23 +86,23 @@ $on_mod(Loaded) {
 
         switch (direction) {
             case controllable::Direction::None:
-                manager.pressDirection(GamepadDirection::None, /* (allow fallback) */ false);
+                manager.pressDirection(GamepadDirection::None, /* (disallow fallback) */ false);
                 break;
 
             case controllable::Direction::Up:
-                manager.pressDirection(GamepadDirection::Up, /* (allow fallback) */ false);
+                manager.pressDirection(GamepadDirection::Up, /* (disallow fallback) */ false);
                 break;
 
             case controllable::Direction::Down:
-                manager.pressDirection(GamepadDirection::Down, /* (allow fallback) */ false);
+                manager.pressDirection(GamepadDirection::Down, /* (disallow fallback) */ false);
                 break;
 
             case controllable::Direction::Left:
-                manager.pressDirection(GamepadDirection::Left, /* (allow fallback) */ false);
+                manager.pressDirection(GamepadDirection::Left, /* (disallow fallback) */ false);
                 break;
 
             case controllable::Direction::Right:
-                manager.pressDirection(GamepadDirection::Right, /* (allow fallback) */ false);
+                manager.pressDirection(GamepadDirection::Right, /* (disallow fallback) */ false);
                 break;
         }
 
