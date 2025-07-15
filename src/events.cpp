@@ -16,7 +16,7 @@ SimpleControllerEvent::SimpleControllerEvent(controllable::SimpleControllerEvent
 
 controllable::SimpleControllerEventType SimpleControllerEvent::SimpleControllerEvent::getControllerEvent() { return m_event; }
 
-bool isUsingController() {
+bool controllable::isUsingController() {
     return cl::utils::isUsingController();
 }
 
