@@ -873,7 +873,7 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
 
     auto id = std::string_view(node->getID());
 
-    // vault of time but invisible - need to show it
+    // chamber of time but invisible - need to show it
     if (id == "secret-door-button") {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCNodeRGBA*>(node->getChildByID("secret-door-sprite"))) {
             if (cast->getOpacity() == 0) return true;
