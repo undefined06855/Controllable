@@ -123,3 +123,4 @@ $on_mod(Loaded) {
 }
 
 #undef MANAGER_BUTTON_CASE
+#undef MANAGER_JOY_CASE
