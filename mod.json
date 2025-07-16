@@ -61,7 +61,12 @@
             "type": "string",
             "name": "Outline Type",
             "description": "Shader uses a shader for an accurate outline, and legacy uses a full rectangle drawn around the button. Legacy will be forced on for a few special elements, such as text inputs. Hover will enlarge the button when you hover over it, as if you have pressed the button but not activated it.",
-            "default": "Shader",
+            "default": {
+                "win": "Shader",
+                "mac": "Shader",
+                "android": "Legacy",
+                "ios": "Legacy"
+            },
             "one-of": [ "Shader", "Legacy", "Hover" ]
         },
         "selection-outline-include-shadow": {
