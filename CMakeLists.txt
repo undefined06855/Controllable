@@ -51,7 +51,7 @@ add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 CPMAddPackage("gh:undefined06855/gd-render-texture#9f51bd1")
 target_link_libraries(${PROJECT_NAME} gd-render-texture)
 
-CPMAddPackage("gh:undefined06855/node-identification#f5659d1")
+CPMAddPackage("gh:undefined06855/node-identification#30944b4")
 target_link_libraries(${PROJECT_NAME} node-identification)
 
 setup_geode_mod(${PROJECT_NAME})

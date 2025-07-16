@@ -1,4 +1,8 @@
 # Controllable
+## v1.0.4
+- Fix history so when you return to a layer, the button you used to enter
+becomes automatically selected
+- Improve Soggy Mod compatibility!
 ## v1.0.3
 - Add event based API for mods looking to simulate controller events
 ## v1.0.2

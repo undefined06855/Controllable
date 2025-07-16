@@ -873,7 +873,7 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
 
     auto id = std::string_view(node->getID());
 
-    // secret door but invisible - need to show it
+    // vault of time but invisible - need to show it
     if (id == "secret-door-button") {
         if (auto cast = geode::cast::typeinfo_cast<cocos2d::CCNodeRGBA*>(node->getChildByID("secret-door-sprite"))) {
             if (cast->getOpacity() == 0) return true;
@@ -882,6 +882,17 @@ bool cl::utils::shouldForceUseLegacySelection(cocos2d::CCNode* node) {
 
     // the tower
     if (id == "enter-btn") return true;
+
+    // soggy mod (and also the tower)
+    // soggy mod sadly provides no node ids
+    auto sprite = node->getChildByType<cocos2d::CCSprite*>(0);
+    if (sprite && sprite->getOpacity() == 0) {
+        auto _frameName = cl::utils::getSpriteNodeFrameName(sprite);
+        auto frameName = _frameName.unwrapOr("");
+        if (frameName == "block005b_05_001.png") {
+            return true;
+        }
+    }
 
     // and check user object
     if (node->getUserObject("force-legacy-selection"_spr)) return true;

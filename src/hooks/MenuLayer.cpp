@@ -1,6 +1,5 @@
 #include "MenuLayer.hpp"
 #include "../ControllableManager.hpp"
-#include "../globals.hpp"
 
 bool HookedMenuLayer::init() {
     if (!MenuLayer::init()) return false;
@@ -8,8 +7,6 @@ bool HookedMenuLayer::init() {
     showShaderWarning();
     showAndroidWarning();
     adjustNGButton();
-
-    g_history.clear();
 
     return true;
 }

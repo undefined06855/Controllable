@@ -154,6 +154,8 @@ void cl::Manager::update(float dt) {
 
     // TODO: look at fine outline buttons being broken? https://discord.com/channels/911701438269386882/911702535373475870/1375889072081600603
     // does this also happen for checkboxes / any switcher with two buttons?
+    // TODO: you can use controllable to navigate while the game is minimised?
+    // TODO: pr soggy mod to add the force-legacy-selection or a node id to the button
 
     // force reset if the button goes offscreen or we are transitioning
     if (!cl::utils::canFocus(g_button, true) || cocos2d::CCDirector::get()->getIsTransitioning()) {
@@ -173,23 +175,34 @@ void cl::Manager::update(float dt) {
             // remember to add last button to history
             if (!g_lastButton.empty()) {
                 g_history.push_back(g_lastButton);
+
+                if (g_history.size() > 300) {
+                    // what the fuck?
+                    // clear just in case
+                    geode::log::warn("g_history.size() > 300! what have you done?");
+                    g_history.clear();
+                }
             }
 
-            bool found = false;
-
-            for (auto id : g_history) {
-                auto button = ni::findNode(id);
+            int index = -1;
+            for (int i = 0; i < g_history.size(); i++) {
+                auto button = ni::findNode(g_history[i]);
                 // we need this check since a button may be found that isnt in
                 // our button list (not focusable/in previous popup)
                 if (std::find(buttons.begin(), buttons.end(), button) != buttons.end()) {
-                    found = true;
+                    index = i;
                     cl::utils::setCurrentButton(button);
                     break;
                 }
             }
 
-            if (!found) {
+            // if we didnt find one, just find a new button
+            if (index == -1) {
                 cl::utils::setCurrentButton(cl::utils::findMostImportantButton(buttons));
+            } else {
+                // else clear everything in history from this index inclusive to
+                // the end
+                g_history.erase(g_history.begin() + index, g_history.end());
             }
         }
     }
