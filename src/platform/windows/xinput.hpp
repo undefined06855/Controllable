@@ -1,7 +1,7 @@
 #pragma once
 
-typedef DWORD (WINAPI* XInputGetState_t)(DWORD dwUserIndex, XINPUT_STATE* pState);
-extern XInputGetState_t _XInputGetState;
+using XInputGetState_t = DWORD (WINAPI*)(DWORD dwUserIndex, XINPUT_STATE* pState);
+using XInputSetState_t = DWORD (WINAPI*)(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration);
 
-typedef DWORD (WINAPI* XInputSetState_t)(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration);
+extern XInputGetState_t _XInputGetState;
 extern XInputSetState_t _XInputSetState;

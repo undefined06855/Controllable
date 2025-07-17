@@ -6,7 +6,7 @@ XInputSetState_t _XInputSetState = nullptr;
 $execute {
     auto xinput = GetModuleHandle("XInput1_4.dll");
     if (!xinput) {
-        xinput = GetModuleHandle("XInput1_4.dll");
+        xinput = GetModuleHandle("Xinput9_1_0.dll");
     }
 
     if (!xinput) {

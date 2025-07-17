@@ -7,7 +7,7 @@
         "ios": "2.2074"
     },
 
-    "version": "v1.0.4",
+    "version": "v1.0.5",
     "id": "undefined0.controllable",
     "name": "Controllable",
     "developer": "undefined0",
@@ -136,6 +136,13 @@
             "name": "Debug Information",
             "description": "Add more debugging information as to how Controllable decides what button to switch to next. Will force the outline type to Legacy.",
             "default": false
+        },
+        "other-suppress-steam-input": {
+            "type": "bool",
+            "name": "Suppress Steam Input Warnings",
+            "description": "Suppresses the warning popup if you start the game with Steam Input enabled.",
+            "default": false,
+            "platforms": [ "win" ]
         }
     }
 }
