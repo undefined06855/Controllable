@@ -1,4 +1,7 @@
 # Controllable
+## v1.0.6
+- Improve API for other mods
+- Fix grammar
 ## v1.0.5
 - Add Steam Input detection and warn the user if it is enabled
 ## v1.0.4

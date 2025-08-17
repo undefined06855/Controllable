@@ -1,7 +1,9 @@
-#include "../../Controller.hpp"
+#include "Controller.hpp"
 #include "../../ControllableManager.hpp"
 #include "../../globals.hpp"
 #include <Geode/cocos/platform/android/jni/JniHelper.h>
+
+using namespace controllable;
 
 Controller g_controller;
 

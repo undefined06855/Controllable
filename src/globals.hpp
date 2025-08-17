@@ -3,6 +3,8 @@
 #include <NodeIdentification.hpp>
 #include "enums.hpp"
 
+using namespace controllable;
+
 extern geode::Ref<cocos2d::CCNode> g_button;
 extern ni::FullIdentification g_lastButton;
 extern std::vector<ni::FullIdentification> g_history;

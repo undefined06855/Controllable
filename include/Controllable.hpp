@@ -1,20 +1,10 @@
 #pragma once
 #include <Geode/loader/Event.hpp>
-// source: src/events.cpp
-
-#ifdef GEODE_IS_WINDOWS
-    #ifdef CONTROLLABLE_EXPORTING
-        #define CONTROLLABLE_DLL __declspec(dllexport)
-    #else
-        #define CONTROLLABLE_DLL __declspec(dllimport)
-    #endif
-#else
-    #define CONTROLLABLE_DLL __attribute__((visibility("default")))
-#endif
+#include "Controller.hpp"
 
 namespace controllable {
 
-enum class SimpleControllerEventType {
+enum class NavigationAction {
     None = 0,
     Up, Down, Left, Right, ConfirmDown, ConfirmUp, Return
 };
@@ -31,27 +21,8 @@ enum class ControllerAction {
 };
 
 bool CONTROLLABLE_DLL isUsingController();
-
-namespace events {
-
-class CONTROLLABLE_DLL ControllerActionEvent : public geode::Event {
-protected:
-    ControllerAction m_action;
-    bool m_down;
-public:
-    ControllerActionEvent(ControllerAction Action, bool down);
-    ControllerAction getAction();
-    bool getDown();
-};
-
-class CONTROLLABLE_DLL SimpleControllerEvent : public geode::Event {
-protected:
-    SimpleControllerEventType m_event;
-public:
-    SimpleControllerEvent(SimpleControllerEventType event);
-    SimpleControllerEventType getControllerEvent();
-};
-
-}
+void CONTROLLABLE_DLL runNavigationAction(NavigationAction action);
+void CONTROLLABLE_DLL runControllerAction(ControllerAction action, bool down);
+CONTROLLABLE_DLL Controller& getController(int index = 0);
 
 }

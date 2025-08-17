@@ -1,6 +1,18 @@
 #pragma once
 #include "enums.hpp"
 
+#ifdef GEODE_IS_WINDOWS
+    #ifdef CONTROLLABLE_EXPORTING
+        #define CONTROLLABLE_DLL __declspec(dllexport)
+    #else
+        #define CONTROLLABLE_DLL __declspec(dllimport)
+    #endif
+#else
+    #define CONTROLLABLE_DLL __attribute__((visibility("default")))
+#endif
+
+namespace controllable {
+
 struct ControllerState {
     bool m_buttonA, m_buttonB, m_buttonX, m_buttonY,
          m_buttonStart, m_buttonSelect,
@@ -13,7 +25,7 @@ struct ControllerState {
 
 // note that implementation of this is platform-specific!
 
-class Controller {
+class CONTROLLABLE_DLL Controller {
 public:
     Controller();
 
@@ -38,4 +50,7 @@ public:
 
     void vibrate(float duration, float left, float right);
 };
-extern Controller g_controller;
+
+}
+
+extern controllable::Controller g_controller;

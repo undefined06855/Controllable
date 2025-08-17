@@ -1,5 +1,7 @@
 #pragma once
 
+namespace controllable {
+
 enum class Direction {
     None = 0,
     Up, Down, Left, Right,
@@ -56,3 +58,5 @@ struct DebugInformation {
     cocos2d::CCRect m_from;
     cocos2d::CCRect m_to;
 };
+
+}

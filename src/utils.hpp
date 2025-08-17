@@ -1,6 +1,8 @@
 #pragma once
 #include "enums.hpp"
 
+using namespace controllable;
+
 namespace cl::utils {
 
 extern std::unordered_map<std::string_view, std::chrono::time_point<std::chrono::steady_clock>> g_timers;

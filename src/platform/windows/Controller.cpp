@@ -1,7 +1,9 @@
-#include "../../Controller.hpp"
+#include "Controller.hpp"
 #include "../../ControllableManager.hpp"
 #include "../../globals.hpp"
 #include "xinput.hpp"
+
+using namespace controllable;
 
 Controller g_controller;
 

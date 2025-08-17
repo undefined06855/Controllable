@@ -35,6 +35,7 @@ list(APPEND SOURCES ${HOOK_SOURCES})
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE lib/)
+target_include_directories(${PROJECT_NAME} PRIVATE include/)
 
 if (PROJECT_IS_TOP_LEVEL)
     target_compile_definitions(${PROJECT_NAME} PRIVATE CONTROLLABLE_EXPORTING)

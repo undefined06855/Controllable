@@ -1,6 +1,8 @@
 #pragma once
 #include "enums.hpp"
 
+using namespace controllable;
+
 namespace cl {
 
 class Manager : public cocos2d::CCObject {
