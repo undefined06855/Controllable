@@ -62,7 +62,7 @@ bool WinHookedMenuLayer::init() {
                 fmt::format(
                     "<co>Steam Input</c> is <cr>enabled</c>, which will conflict "
                     "with Controllable's built in support! Since you have an <cy>"
-                "{}</c> Controller, <co>Steam Input</c> is <cr>not</c> "
+                    "{}</c> Controller, <co>Steam Input</c> is <cr>not</c> "
                     "necessary.",
                     name
                 ).c_str(),

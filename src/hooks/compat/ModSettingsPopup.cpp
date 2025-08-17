@@ -13,7 +13,9 @@ void HookedModSettingsPopup::modify() {
                 "Controllable",
                 "Note that <co>Controllable</c> does <cr>not</c> work well in "
                 "<cy>Geode mod setting popups</c>, and you will most likely "
-                "have to edit mod settings with a <cj>keyboard and mouse</c>!"
+                "have to edit mod settings with "
+                GEODE_DESKTOP("a <cj>keyboard and mouse</c>!")
+                GEODE_MOBILE("your <cj>touchscreen</c>!")
                 "\n\n"
                 "This message will only be shown <cg>once</c>.",
                 "ok",
