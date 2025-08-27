@@ -1,0 +1,2 @@
+# ignore steamworks in language statistics
+lib/** linguist-vendored
