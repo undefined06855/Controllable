@@ -487,7 +487,7 @@ Direction cl::utils::simplifyGamepadDirection(GamepadDirection direction) {
 
 bool cl::utils::directionIsSecondaryJoystick(GamepadDirection direction) {
     switch (direction) {
-        case GamepadDirection::None:    
+        case GamepadDirection::None:
         case GamepadDirection::Up:
         case GamepadDirection::Down:
         case GamepadDirection::Left:
@@ -594,27 +594,25 @@ T cl::utils::findParentOfType(cocos2d::CCNode* node) {
     else return cl::utils::findParentOfType<T>(node->getParent());
 }
 
-geode::Result<std::string> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* sprite) {
-    std::string frameName = "";
-    bool found = false;
+geode::Result<std::string_view> cl::utils::getSpriteNodeFrameName(cocos2d::CCSprite* sprite) {
+    std::string_view frameName = "";
     // taken from devtools
     if (auto texture = sprite->getTexture()) {
         auto cachedFrames = cocos2d::CCSpriteFrameCache::sharedSpriteFrameCache()->m_pSpriteFrames;
         auto rect = sprite->getTextureRect();
-        for (auto [key, frame] : geode::cocos::CCDictionaryExt<std::string, cocos2d::CCSpriteFrame*>(cachedFrames)) {
+        for (auto [key, frame] : geode::cocos::CCDictionaryExt<std::string_view, cocos2d::CCSpriteFrame*>(cachedFrames)) {
             if (frame->getTexture() == texture && frame->getRect() == rect) {
                 frameName = key;
-                found = true;
                 break;
             }
         }
     }
 
-    if (found) {
-        return geode::Ok(frameName);
-    } else {
+    if (frameName.empty()) {
         return geode::Err("Sprite does not have a frame name found in cache!");
     }
+
+    return geode::Ok(frameName);
 }
 
 cocos2d::CCNode* cl::utils::findNavArrow(NavigationArrowType type) {
@@ -773,7 +771,7 @@ bool cl::utils::buttonIsActuallySliderThumb(cocos2d::CCNode* button) {
     return geode::cast::typeinfo_cast<SliderThumb*>(button);
 }
 
-// this is used for any time a child is a popup but is added to the current 
+// this is used for any time a child is a popup but is added to the current
 // layer instead of ccscene so it doesnt automatically get treated as the child
 // of an important layer
 // note we cant use id to find flalertlayer like we can with gjdropdownlayer
@@ -913,8 +911,8 @@ bool cl::utils::textInputIsFromGeode(cocos2d::CCNode* node) {
 
 std::pair<cocos2d::CCPoint, cocos2d::CCPoint> cl::utils::getRectCorners(cocos2d::CCRect& rect) {
     return {
-        { rect.getMinX(), rect.getMinY() },  
-        { rect.getMaxX(), rect.getMaxY() }  
+        { rect.getMinX(), rect.getMinY() },
+        { rect.getMaxX(), rect.getMaxY() }
     };
 }
 

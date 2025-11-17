@@ -1,19 +1,13 @@
 #include "Controller.hpp"
 #include "../../ControllableManager.hpp"
 #include "../../globals.hpp"
-#include <Geode/cocos/platform/android/jni/JniHelper.h>
+#include <Geode/utils/AndroidEvent.hpp>
 
 using namespace controllable;
 
 Controller g_controller;
 
 ControllerState g_callbackControllerState;
-
-void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject, jint index, jobject gamepad);
-void JNI_GeodeUtils_setControllerConnected(JNIEnv* env, jobject, jint index, jboolean connected);
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wwritable-strings"
 
 Controller::Controller()
     : m_state({})
@@ -22,74 +16,38 @@ Controller::Controller()
     , m_vibrationTime(0.f)
     , m_connected(false) {
 
-    // taken from cbf
-    static const JNINativeMethod methods[] = {
-        {
-            "setControllerState",
-            "(ILcom/geode/launcher/utils/GeodeUtils$Gamepad;)V",
-            reinterpret_cast<void*>(&JNI_GeodeUtils_setControllerState)
-        },
-        {
-            "setControllerConnected",
-            "(IZ)V",
-            reinterpret_cast<void*>(&JNI_GeodeUtils_setControllerConnected)
-        }
-    };
+    // remember for device id
+    // https://discord.com/channels/911701438269386882/1248524007859290205/1420442689131905084
 
-
-    // register native function for callback
-    // this is called on the nearest frame whenever a controller input is detected
-
-    JNIEnv* env;
-    auto ret = cocos2d::JniHelper::getJavaVM()->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
-
-    if (ret != JNI_OK) {
-        geode::log::warn("Failed to get java env!");
-        return;
-    }
-
-    auto geodeUtils = cocos2d::JniHelper::getClassID("com/geode/launcher/utils/GeodeUtils");
-    ret = env->RegisterNatives(geodeUtils, methods, 2);
-    if (ret) {
-        geode::log::warn("Failed to set native function for setControllerState!");
+    
+    if (!geode::utils::getLauncherVersion()) {
+        // yo launcher out of date
         cl::Manager::get().m_androidLauncherOutdated = true;
         return;
     }
+    
+    new geode::EventListener<geode::EventFilter<geode::AndroidInputDeviceInfoEvent>>([this](geode::AndroidInputDeviceInfoEvent* event) {
+        return geode::ListenerResult::Propagate;
+    });
+        
+    new geode::EventListener<geode::EventFilter<geode::AndroidInputDeviceEvent>>([this](geode::AndroidInputDeviceEvent* event) {
+        m_connected = event->status() == geode::AndroidInputDeviceEvent::Status::Removed;
+        
+        return geode::ListenerResult::Propagate;
+    });
 
-    // and enable callbacks
+    new geode::EventListener<geode::EventFilter<geode::AndroidInputJoystickEvent>>([this](geode::AndroidInputJoystickEvent* event) {
 
-    auto info = cocos2d::JniMethodInfo();
-    if (!cocos2d::JniHelper::getStaticMethodInfo(info, "com/geode/launcher/utils/GeodeUtils", "enableControllerCallbacks", "()V")) {
-        geode::log::warn("Failed to get JNI method info for enableControllerCallbacks!");
-        return;
-    }
+        return geode::ListenerResult::Propagate;
+    });
 
-    info.env->CallStaticVoidMethod(info.classID, info.methodID);
-    info.env->DeleteLocalRef(info.classID);
-}
+    
+    new geode::EventListener<geode::EventFilter<geode::AndroidInputTimestampEvent>>([this](geode::AndroidInputTimestampEvent* event) {
+        
+        return geode::ListenerResult::Propagate;
+    });
 
-#pragma clang diagnostic pop
-
-// should be called before all input processing is done
-void Controller::update(float dt) {
-    m_lastDirection = directionPressed();
-    m_lastGamepadButton = gamepadButtonPressed();
-
-    // sync callback controller state with controller state
-    m_state = g_callbackControllerState;
-
-    m_vibrationTime -= dt;
-    if (m_vibrationTime < 0.f) {
-        m_vibrationTime = 0.f;
-    }
-}
-
-#define JAVA_GAMEPAD_BOOL_FIELD(field) (bool)env->GetBooleanField(gamepad, env->GetFieldID(gamepadClass, field, "Z"))
-#define JAVA_GAMEPAD_FLOAT_FIELD(field) (float)env->GetFloatField(gamepad, env->GetFieldID(gamepadClass, field, "F"))
-
-void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject self, jint index, jobject gamepad) {
-    if (index != 0) return;
-
+    
     g_controller.m_connected = true;
     g_isUsingController = true;
 
@@ -120,6 +78,25 @@ void JNI_GeodeUtils_setControllerState(JNIEnv* env, jobject self, jint index, jo
     g_callbackControllerState.m_joyRightY = JAVA_GAMEPAD_FLOAT_FIELD("mJoyRightY");
 }
 
+// should be called before all input processing is done
+void Controller::update(float dt) {
+    m_lastDirection = directionPressed();
+    m_lastGamepadButton = gamepadButtonPressed();
+
+    // sync callback controller state with controller state
+    m_state = g_callbackControllerState;
+
+    m_vibrationTime -= dt;
+    if (m_vibrationTime < 0.f) {
+        m_vibrationTime = 0.f;
+    }
+}
+
+void () {
+    if (index != 0) return;
+
+}
+
 void JNI_GeodeUtils_setControllerConnected(JNIEnv* env, jobject, jint index, jboolean connected) {
     if (index != 0) return;
 
@@ -129,80 +106,6 @@ void JNI_GeodeUtils_setControllerConnected(JNIEnv* env, jobject, jint index, jbo
 
 #undef JAVA_GAMEPAD_BOOL_FIELD
 #undef JAVA_GAMEPAD_FLOAT_FIELD
-
-GamepadDirection Controller::directionJustPressed() {
-    if (m_lastDirection != directionPressed()) return directionPressed();
-    return GamepadDirection::None;
-}
-
-GamepadDirection Controller::directionJustReleased() {
-    if (m_lastDirection != directionPressed()) return m_lastDirection;
-    return GamepadDirection::None;
-}
-
-GamepadButton Controller::gamepadButtonJustPressed() {
-    if (m_lastGamepadButton != gamepadButtonPressed()) return gamepadButtonPressed();
-    return GamepadButton::None;
-}
-
-GamepadButton Controller::gamepadButtonJustReleased() {
-    if (m_lastGamepadButton != gamepadButtonPressed()) return m_lastGamepadButton;
-    return GamepadButton::None;
-}
-
-
-GamepadDirection Controller::directionPressed() {
-    // d-pad
-    if (m_state.m_buttonUp) return GamepadDirection::Up;
-    if (m_state.m_buttonDown) return GamepadDirection::Down;
-    if (m_state.m_buttonLeft) return GamepadDirection::Left;
-    if (m_state.m_buttonRight) return GamepadDirection::Right;
-
-    // 0 to 1
-    float deadzone = cl::Manager::get().m_controllerJoystickDeadzone;
-
-    // joystick
-    if (m_state.m_joyLeftY > deadzone) return GamepadDirection::JoyUp;
-    if (m_state.m_joyLeftY < -deadzone) return GamepadDirection::JoyDown;
-    if (m_state.m_joyLeftX < -deadzone) return GamepadDirection::JoyLeft;
-    if (m_state.m_joyLeftX > deadzone) return GamepadDirection::JoyRight;
-
-    if (m_state.m_joyRightY > deadzone) return GamepadDirection::SecondaryJoyUp;
-    if (m_state.m_joyRightY < -deadzone) return GamepadDirection::SecondaryJoyDown;
-    if (m_state.m_joyRightX < -deadzone) return GamepadDirection::SecondaryJoyLeft;
-    if (m_state.m_joyRightX > deadzone) return GamepadDirection::SecondaryJoyRight;
-
-    return GamepadDirection::None;
-}
-
-GamepadButton Controller::gamepadButtonPressed() {
-    if (m_state.m_buttonA) return GamepadButton::A;
-    if (m_state.m_buttonB) return GamepadButton::B;
-    if (m_state.m_buttonX) return GamepadButton::X;
-    if (m_state.m_buttonY) return GamepadButton::Y;
-    if (m_state.m_buttonStart) return GamepadButton::Start;
-    if (m_state.m_buttonSelect) return GamepadButton::Select;
-    if (m_state.m_buttonL) return GamepadButton::L;
-    if (m_state.m_buttonR) return GamepadButton::R;
-    if (m_state.m_buttonZL) return GamepadButton::ZL;
-    if (m_state.m_buttonZR) return GamepadButton::ZR;
-    if (m_state.m_buttonUp) return GamepadButton::Up;
-    if (m_state.m_buttonDown) return GamepadButton::Down;
-    if (m_state.m_buttonLeft) return GamepadButton::Left;
-    if (m_state.m_buttonRight) return GamepadButton::Right;
-    if (m_state.m_joyLeft) return GamepadButton::JoyLeft;
-    if (m_state.m_joyRight) return GamepadButton::JoyRight;
-
-    return GamepadButton::None;
-}
-
-cocos2d::CCPoint Controller::getLeftJoystick() {
-    return { m_state.m_joyLeftX, m_state.m_joyLeftY };
-}
-
-cocos2d::CCPoint Controller::getRightJoystick() {
-    return { m_state.m_joyRightX, m_state.m_joyRightY };
-}
 
 void Controller::vibrate(float duration, float left, float right) {
     m_vibrationTime = duration;
